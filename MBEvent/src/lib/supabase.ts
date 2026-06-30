@@ -4,10 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
+const isPlaceholder = (value: string, placeholders: string[]) =>
+  placeholders.some((p) => value.includes(p));
+
 export const isSupabaseConfigured =
   supabaseUrl.length > 0 &&
   supabaseAnonKey.length > 0 &&
-  !supabaseUrl.includes('your-project');
+  !isPlaceholder(supabaseUrl, ['your-project']) &&
+  !isPlaceholder(supabaseAnonKey, ['your-anon-key', 'your-key-here']);
 
 // AsyncStorage accesses `window` on web; Expo static SSR runs in Node without it.
 const authStorage = {

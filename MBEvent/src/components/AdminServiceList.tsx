@@ -21,11 +21,25 @@ export function AdminServiceList({ table, title, eventTypeSlug, route }: AdminSe
   const [items, setItems] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Some catalog tables don't have `event_type_id` (e.g. birthday_themes, wedding dresses).
+  // We only filter by event_type_id for the tables that actually include it.
+  const TABLES_WITH_EVENT_TYPE_ID = new Set([
+    'venues',
+    'catering_options',
+    'photographers',
+    'videographers',
+    'makeup_artists',
+    'cakes',
+    'decorations',
+    'entertainment_options',
+    'hosts',
+  ]);
+
   const fetchItems = async () => {
     setLoading(true);
     let query = supabase.from(table).select('*').order('created_at', { ascending: false });
 
-    if (eventTypeSlug) {
+    if (eventTypeSlug && TABLES_WITH_EVENT_TYPE_ID.has(table)) {
       const { data: eventType } = await supabase
         .from('event_types')
         .select('id')
@@ -43,6 +57,7 @@ export function AdminServiceList({ table, title, eventTypeSlug, route }: AdminSe
           id: d.id as string,
           name: (d.name ?? d.theme_name ?? d.model ?? d.studio_name ?? 'Unnamed') as string,
           price: Number(d.price ?? d.rental_price ?? 0),
+          package_tier: d.package_tier as ServiceItem['package_tier'],
           description: d.description as string,
           contact: d.contact as string,
           location: d.location as string,
@@ -58,7 +73,7 @@ export function AdminServiceList({ table, title, eventTypeSlug, route }: AdminSe
 
   useEffect(() => {
     fetchItems();
-  }, [table]);
+  }, [table, eventTypeSlug]);
 
   const handleDelete = (id: string) => {
     Alert.alert('Delete', 'Are you sure you want to delete this item?', [
@@ -87,6 +102,7 @@ export function AdminServiceList({ table, title, eventTypeSlug, route }: AdminSe
         <EmptyState icon="package-variant" title="No items yet" message="Tap + to add your first item." />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -94,6 +110,8 @@ export function AdminServiceList({ table, title, eventTypeSlug, route }: AdminSe
               <ServiceCard
                 item={item}
                 onPress={() => router.push(`/(admin)/manage/${route}/${item.id}` as never)}
+                showPrice={false}
+                showTier
               />
               <Button title="Delete" variant="danger" size="sm" onPress={() => handleDelete(item.id)} />
             </View>

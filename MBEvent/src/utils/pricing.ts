@@ -7,15 +7,11 @@ export function formatCurrency(amount: number): string {
 
 export function calculatePricing(
   pkg: Package,
-  selections: WizardSelection[],
+  _selections: WizardSelection[],
   discount = 0
 ): PricingBreakdown {
   const basePrice = Number(pkg.price);
-  const upgradeTotal = selections.reduce(
-    (sum, s) => sum + Number(s.priceDelta) * s.quantity,
-    0
-  );
-  const subtotal = basePrice + upgradeTotal;
+  const subtotal = basePrice;
   const serviceFee = Math.round(subtotal * SERVICE_FEE_RATE);
   const total = subtotal + serviceFee - discount;
   const reservationFeePct = Number(pkg.reservation_fee_pct) / 100;

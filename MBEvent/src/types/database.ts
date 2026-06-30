@@ -36,10 +36,18 @@ export interface Package {
   is_active: boolean;
 }
 
+export interface PackageInclusion {
+  id: string;
+  package_id: string;
+  service_type: string;
+  included: boolean;
+}
+
 export interface ServiceItem {
   id: string;
   name: string;
   price: number;
+  package_tier?: PackageTier;
   description?: string | null;
   contact?: string | null;
   location?: string | null;

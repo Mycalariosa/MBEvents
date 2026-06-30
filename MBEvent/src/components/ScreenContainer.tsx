@@ -13,7 +13,7 @@ interface ScreenContainerProps {
 export function ScreenContainer({ children, scroll = true, padded = true, style }: ScreenContainerProps) {
   const { colors } = useTheme();
   const content = (
-    <View style={[padded && styles.padded, style]}>{children}</View>
+    <View style={[padded && styles.padded, !scroll && styles.flex, style]}>{children}</View>
   );
 
   return (
@@ -31,6 +31,7 @@ export function ScreenContainer({ children, scroll = true, padded = true, style 
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  flex: { flex: 1 },
   scroll: { flexGrow: 1 },
   padded: { padding: SPACING.md },
 });

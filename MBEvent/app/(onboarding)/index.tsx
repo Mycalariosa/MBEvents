@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Button } from '@/src/components';
 import { ONBOARDING_PAGES, COLORS, SPACING, FONT_SIZES } from '@/src/constants';
@@ -10,16 +9,21 @@ const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const flatListRef = useRef<FlatList>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
   const goToLogin = async () => {
-    await AsyncStorage.setItem('hasSeenOnboarding', 'true');
     router.replace('/(auth)/login' as never);
+  };
+
+  const goToPage = (page: number) => {
+    flatListRef.current?.scrollToOffset({ offset: page * width, animated: true });
+    setCurrentPage(page);
   };
 
   const nextPage = () => {
     if (currentPage < ONBOARDING_PAGES.length - 1) {
-      setCurrentPage(currentPage + 1);
+      goToPage(currentPage + 1);
     } else {
       goToLogin();
     }
@@ -32,11 +36,13 @@ export default function OnboardingScreen() {
       </TouchableOpacity>
 
       <FlatList
+        ref={flatListRef}
         data={ONBOARDING_PAGES}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, i) => i.toString()}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         onMomentumScrollEnd={(e) => {
           setCurrentPage(Math.round(e.nativeEvent.contentOffset.x / width));
         }}

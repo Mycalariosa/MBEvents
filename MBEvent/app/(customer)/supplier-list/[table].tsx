@@ -48,6 +48,8 @@ export default function SupplierListScreen() {
             <ServiceCard
               item={item}
               onPress={() => router.push(`/(customer)/supplier/${item.id}?type=${table}` as never)}
+              showPrice={false}
+              showTier
             />
           )}
         />

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/src/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/src/lib/supabase';
 import type { Profile } from '@/src/types/database';
 
 interface AuthContextType {
@@ -15,7 +15,7 @@ interface AuthContextType {
     username: string;
     phone: string;
   }) => Promise<{ error: string | null }>;
-  signIn: (identifier: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (identifier: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
@@ -30,12 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    if (data) setProfile(data as Profile);
+
+    if (error || !data) {
+      setProfile(null);
+      return null;
+    }
+
+    setProfile(data as Profile);
+    return data as Profile;
   }, []);
 
   useEffect(() => {
@@ -100,6 +107,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (identifier: string, password: string) => {
+    if (!isSupabaseConfigured) {
+      return {
+        error:
+          'Supabase is not configured. Copy .env.example to .env and add your EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY, then restart Expo.',
+        profile: null,
+      };
+    }
+
     const trimmed = identifier.trim();
     let email = trimmed;
 
@@ -111,24 +126,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (profileError) {
-        return { error: 'Could not look up username. Try logging in with your email instead.' };
+        return {
+          error: 'Could not look up username. Try logging in with your email instead.',
+          profile: null,
+        };
       }
 
       if (!profileData?.email) {
-        return { error: 'Username not found. Try admin@mbevents.dev or your registered email.' };
+        return {
+          error: 'Username not found. Try admin@mbevents.dev or your registered email.',
+          profile: null,
+        };
       }
 
       email = profileData.email;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error?.message === 'Invalid login credentials') {
       return {
         error:
           'Invalid username/email or password. Demo admin: admin@mbevents.dev / admin123',
+        profile: null,
       };
     }
-    return { error: error?.message ?? null };
+    if (error) {
+      const message = error.message ?? 'Login failed';
+      if (/network|fetch/i.test(message)) {
+        return {
+          error:
+            'Could not reach Supabase. Check EXPO_PUBLIC_SUPABASE_URL in .env, your internet connection, and restart Expo.',
+          profile: null,
+        };
+      }
+      return { error: message, profile: null };
+    }
+
+    const userId = authData.user?.id;
+    if (!userId) {
+      return { error: 'Login failed. Please try again.', profile: null };
+    }
+
+    const { data: userProfile, error: profileFetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profileFetchError || !userProfile) {
+      await supabase.auth.signOut();
+      return {
+        error:
+          'Your account is missing a profile. Run migration 005_demo_users.sql in Supabase or sign up again.',
+        profile: null,
+      };
+    }
+
+    setProfile(userProfile as Profile);
+    return { error: null, profile: userProfile as Profile };
   };
 
   const signOut = async () => {

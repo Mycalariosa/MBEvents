@@ -2,6 +2,7 @@ import { Button, Input, ScreenContainer } from '@/src/components';
 import { COLORS, FONT_SIZES, SPACING } from '@/src/constants';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTheme } from '@/src/hooks/useTheme';
+import { isSupabaseConfigured } from '@/src/lib/supabase';
 import { loginSchema, type LoginFormData } from '@/src/utils/validation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useRouter } from 'expo-router';
@@ -24,7 +25,7 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
-    const { error } = await signIn(data.identifier, data.password);
+    const { error, profile } = await signIn(data.identifier, data.password);
     setLoading(false);
 
     if (error) {
@@ -32,11 +33,20 @@ export default function LoginScreen() {
       return;
     }
 
+    if (!profile) {
+      Alert.alert('Login Failed', 'Could not load your profile. Please try again.');
+      return;
+    }
+
     if (rememberMe) {
       await SecureStore.setItemAsync('rememberedUser', data.identifier);
     }
 
-    router.replace('/' as never);
+    if (profile.role === 'admin') {
+      router.replace('/(admin)/(tabs)/dashboard' as never);
+    } else {
+      router.replace('/(customer)/(tabs)/home' as never);
+    }
   };
 
   return (
@@ -45,6 +55,14 @@ export default function LoginScreen() {
         <Text style={[styles.logo, { color: colors.primary }]}>MBEvents</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Welcome back!</Text>
       </View>
+
+      {!isSupabaseConfigured && (
+        <View style={[styles.configBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
+          <Text style={[styles.configBannerText, { color: colors.text }]}>
+            Supabase is not configured. Copy .env.example to .env, add your project URL and anon key, then restart Expo.
+          </Text>
+        </View>
+      )}
 
       <Controller
         control={control}
@@ -98,4 +116,11 @@ const styles = StyleSheet.create({
   rememberRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
   checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: COLORS.gray300, alignItems: 'center', justifyContent: 'center' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.lg },
+  configBanner: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  configBannerText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
 });

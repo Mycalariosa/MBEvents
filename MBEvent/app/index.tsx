@@ -1,16 +1,21 @@
 import { COLORS, FONT_SIZES } from '@/src/constants';
 import { useAuth } from '@/src/hooks/useAuth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
+const SPLASH_MIN_MS = 2500;
+const PROFILE_WAIT_MS = 5000;
+
 export default function SplashScreen() {
   const router = useRouter();
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, signOut } = useAuth();
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const navigated = useRef(false);
   const scale = useSharedValue(0.5);
   const opacity = useSharedValue(0);
+  const goToOnboarding = () => router.replace('/(onboarding)' as never);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -23,10 +28,23 @@ export default function SplashScreen() {
   }, []);
 
   useEffect(() => {
-    if (loading) return;
+    const timer = setTimeout(() => setMinTimeElapsed(true), SPLASH_MIN_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (loading || !minTimeElapsed || navigated.current) return;
+
+    const navigateUnauthenticated = () => {
+      navigated.current = true;
+      goToOnboarding();
+    };
 
     const navigate = async () => {
-      if (session && profile) {
+      if (session) {
+        if (!profile) return;
+
+        navigated.current = true;
         if (profile.role === 'admin') {
           router.replace('/(admin)/(tabs)/dashboard' as never);
         } else {
@@ -35,18 +53,25 @@ export default function SplashScreen() {
         return;
       }
 
-      await new Promise((r) => setTimeout(r, 2500));
-
-      const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
-      if (hasSeenOnboarding) {
-        router.replace('/(auth)/login' as never);
-      } else {
-        router.replace('/(onboarding)' as never);
-      }
+      navigateUnauthenticated();
     };
 
     navigate();
-  }, [loading, session, profile]);
+  }, [loading, minTimeElapsed, session, profile, router]);
+
+  // Session exists but profile never loads — clear stale auth and show onboarding
+  useEffect(() => {
+    if (loading || !session || profile || navigated.current) return;
+
+    const timer = setTimeout(async () => {
+      if (navigated.current || profile) return;
+      navigated.current = true;
+      await signOut();
+      goToOnboarding();
+    }, PROFILE_WAIT_MS);
+
+    return () => clearTimeout(timer);
+  }, [loading, session, profile, signOut, router]);
 
   return (
     <View style={styles.container}>

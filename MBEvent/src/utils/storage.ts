@@ -44,20 +44,48 @@ export function resolveStorageUrls(paths: string[] | null | undefined): string[]
     .filter((url): url is string => !!url);
 }
 
+function contentTypeFromUri(uri: string): string {
+  const lower = uri.split('?')[0].toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.heic') || lower.endsWith('.heif')) return 'image/heic';
+  return 'image/jpeg';
+}
+
+function extensionFromContentType(contentType: string): string {
+  if (contentType === 'image/png') return 'png';
+  if (contentType === 'image/webp') return 'webp';
+  if (contentType === 'image/heic') return 'heic';
+  return 'jpg';
+}
+
 export async function uploadServiceImage(
   table: string,
   localUri: string
 ): Promise<{ path: string | null; error: string | null }> {
-  const fileName = `${Date.now()}.jpg`;
-  const storagePath = buildStoragePath(table, fileName);
+  try {
+    const contentType = contentTypeFromUri(localUri);
+    const fileName = `${Date.now()}.${extensionFromContentType(contentType)}`;
+    const storagePath = buildStoragePath(table, fileName);
 
-  const response = await fetch(localUri);
-  const blob = await response.blob();
+    const response = await fetch(localUri);
+    if (!response.ok) {
+      return { path: null, error: `Could not read image (${response.status})` };
+    }
 
-  const { data, error } = await supabase.storage
-    .from(SERVICE_IMAGES_BUCKET)
-    .upload(storagePath, blob, { contentType: 'image/jpeg', upsert: false });
+    const arrayBuffer = await response.arrayBuffer();
+    if (!arrayBuffer.byteLength) {
+      return { path: null, error: 'Selected image is empty' };
+    }
 
-  if (error) return { path: null, error: error.message };
-  return { path: data.path, error: null };
+    const { data, error } = await supabase.storage
+      .from(SERVICE_IMAGES_BUCKET)
+      .upload(storagePath, arrayBuffer, { contentType, upsert: false });
+
+    if (error) return { path: null, error: error.message };
+    return { path: data.path, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upload failed';
+    return { path: null, error: message };
+  }
 }

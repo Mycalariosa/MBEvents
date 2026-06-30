@@ -14,11 +14,16 @@ interface ServiceCardProps {
   onPress: () => void;
   onFavorite?: () => void;
   isFavorite?: boolean;
+  showPrice?: boolean;
+  showTier?: boolean;
 }
 
-export function ServiceCard({ item, onPress, onFavorite, isFavorite }: ServiceCardProps) {
+export function ServiceCard({ item, onPress, onFavorite, isFavorite, showPrice = false, showTier }: ServiceCardProps) {
   const { colors } = useTheme();
   const imageUrl = resolveStorageUrl(item.images?.[0]);
+  const tierLabel = item.package_tier
+    ? `${item.package_tier[0].toUpperCase()}${item.package_tier.slice(1)}`
+    : null;
 
   return (
     <TouchableOpacity
@@ -56,9 +61,17 @@ export function ServiceCard({ item, onPress, onFavorite, isFavorite }: ServiceCa
             {item.location}
           </Text>
         )}
-        <Text style={[styles.price, { color: colors.primary }]}>
-          {formatCurrency(Number(item.price ?? item.metadata?.rental_price ?? 0))}
-        </Text>
+        {showPrice ? (
+          <Text style={[styles.price, { color: colors.primary }]}>
+            {formatCurrency(Number(item.price ?? item.metadata?.rental_price ?? 0))}
+          </Text>
+        ) : null}
+
+        {showTier && tierLabel ? (
+          <View style={[styles.tierBadge, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '33' }]}>
+            <Text style={[styles.tierBadgeText, { color: colors.primary }]}>{tierLabel}</Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -97,4 +110,13 @@ const styles = StyleSheet.create({
   rating: { fontSize: FONT_SIZES.sm },
   location: { fontSize: FONT_SIZES.sm, marginTop: 2 },
   price: { fontSize: FONT_SIZES.md, fontWeight: '700', marginTop: SPACING.sm },
+  tierBadge: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    marginTop: SPACING.sm,
+  },
+  tierBadgeText: { fontSize: FONT_SIZES.sm, fontWeight: '700' },
 });

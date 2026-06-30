@@ -4,81 +4,93 @@ import { useTheme } from '@/src/hooks/useTheme';
 import { supabase } from '@/src/lib/supabase';
 import { useWizardStore } from '@/src/stores';
 import type { Package } from '@/src/types/database';
+import { fetchPackageInclusions, getInclusionLabels, getWeddingTierQualityNotes } from '@/src/utils/wizardSteps';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-
-const getPackageHighlights = (pkg: Package) => {
-  const tier = pkg.tier?.toLowerCase() ?? 'bronze';
-  const baseHighlights = [
-    'Dedicated event planning support',
-    `Guest capacity up to ${pkg.max_guests ?? 50}`,
-    'Curated styling and coordination',
-  ];
-
-  if (tier === 'silver') {
-    return [
-      ...baseHighlights,
-      'Enhanced décor and vendor coordination',
-      'More flexibility for premium add-ons',
-    ];
-  }
-
-  if (tier === 'gold') {
-    return [
-      ...baseHighlights,
-      'Priority planning and premium supplier access',
-      'Elevated presentation, coordination, and VIP touches',
-    ];
-  }
-
-  return [
-    ...baseHighlights,
-    'A refined foundation for a beautifully organized celebration',
-  ];
-};
 
 const getUpgradeMessage = (pkg: Package) => {
   const tier = pkg.tier?.toLowerCase() ?? 'bronze';
   if (tier === 'bronze') {
-    return 'Upgrade to Silver or Gold for more guest flexibility, richer styling, and a more elevated planner experience.';
+    return 'Upgrade to Silver or Gold for videography, invitations, entertainment, and more premium services.';
   }
   if (tier === 'silver') {
-    return 'Silver gives you more flexibility and a stronger event experience, while Gold unlocks premium coordination and VIP-level presentation.';
+    return 'Silver adds videography, invitations, and entertainment. Gold unlocks luxury transportation and top-tier options.';
   }
-  return 'Gold delivers the fullest experience with premium coordination, elevated touches, and the strongest overall value for a high-impact celebration.';
+  return 'Gold delivers the fullest experience with premium coordination, bridal transport, and the strongest overall value.';
 };
 
 export default function PackageSelectionScreen() {
   const { eventType, packageId } = useLocalSearchParams<{ eventType: string; packageId?: string }>();
   const { colors } = useTheme();
   const router = useRouter();
-  const { setEventType, setPackage, selectedPackage } = useWizardStore();
+  const { setEventType, setPackage, setPackageInclusions } = useWizardStore();
   const [packages, setPackages] = useState<Package[]>([]);
   const [selected, setSelected] = useState<Package | null>(null);
+  const [inclusionLabels, setInclusionLabels] = useState<string[]>([]);
+
+  const loadInclusions = useCallback(
+    async (pkg: Package) => {
+      try {
+        const inclusions = await fetchPackageInclusions(pkg.id);
+        setPackageInclusions(inclusions);
+        setInclusionLabels(getInclusionLabels(eventType ?? '', inclusions));
+      } catch {
+        setInclusionLabels([]);
+      }
+    },
+    [eventType, setPackageInclusions]
+  );
+
+  const handleSelectPackage = useCallback(
+    (pkg: Package) => {
+      setSelected(pkg);
+      setPackage(pkg);
+      loadInclusions(pkg);
+    },
+    [setPackage, loadInclusions]
+  );
 
   useEffect(() => {
     if (eventType) setEventType(eventType);
-    supabase.from('event_types').select('id').eq('slug', eventType).single().then(({ data }) => {
-      if (data) {
-        supabase.from('packages').select('*').eq('event_type_id', (data as { id: string }).id).eq('is_active', true).then(({ data: pkgs }) => {
-          if (pkgs) {
-            setPackages(pkgs as Package[]);
-            if (packageId) {
-              const pkg = (pkgs as Package[]).find((p) => p.id === packageId);
-              if (pkg) { setSelected(pkg); setPackage(pkg); }
-            }
-          }
-        });
-      }
-    });
-  }, [eventType]);
+    supabase
+      .from('event_types')
+      .select('id')
+      .eq('slug', eventType)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          supabase
+            .from('packages')
+            .select('*')
+            .eq('event_type_id', (data as { id: string }).id)
+            .eq('is_active', true)
+            .then(({ data: pkgs }) => {
+              if (pkgs) {
+                setPackages(pkgs as Package[]);
+                if (packageId) {
+                  const pkg = (pkgs as Package[]).find((p) => p.id === packageId);
+                  if (pkg) handleSelectPackage(pkg);
+                }
+              }
+            });
+        }
+      });
+  }, [eventType, packageId, setEventType, handleSelectPackage]);
 
   const handleContinue = () => {
     if (!selected) return;
     setPackage(selected);
     router.push(`/(customer)/booking/${eventType}/customize/0` as never);
   };
+
+  const highlights = selected
+    ? [
+        `Guest capacity up to ${selected.max_guests ?? 50}`,
+        ...inclusionLabels,
+        ...(eventType === 'wedding' ? getWeddingTierQualityNotes(selected.tier) : []),
+      ]
+    : [];
 
   return (
     <ScreenContainer>
@@ -93,20 +105,24 @@ export default function PackageSelectionScreen() {
             <PackageCard
               pkg={pkg}
               selected={isSelected}
-              onPress={() => { setSelected(pkg); setPackage(pkg); }}
+              onPress={() => handleSelectPackage(pkg)}
             />
             {isSelected && (
-              <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-                <Text style={[styles.detailsTitle, { color: colors.text }]}>What’s Included</Text>
-                {getPackageHighlights(pkg).map((item) => (
+              <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={[styles.detailsTitle, { color: colors.text }]}>What's Included</Text>
+                {highlights.map((item) => (
                   <View key={item} style={styles.bulletRow}>
                     <Text style={[styles.bullet, { color: colors.primary }]}>•</Text>
                     <Text style={[styles.bulletText, { color: colors.textSecondary }]}>{item}</Text>
                   </View>
                 ))}
-                <View style={[styles.upgradeBox, { backgroundColor: colors.surface }]}> 
-                  <Text style={[styles.upgradeTitle, { color: colors.primary }]}>Why the higher tier is better</Text>
-                  <Text style={[styles.upgradeText, { color: colors.textSecondary }]}>{getUpgradeMessage(pkg)}</Text>
+                <View style={[styles.upgradeBox, { backgroundColor: colors.surface }]}>
+                  <Text style={[styles.upgradeTitle, { color: colors.primary }]}>
+                    Why the higher tier is better
+                  </Text>
+                  <Text style={[styles.upgradeText, { color: colors.textSecondary }]}>
+                    {getUpgradeMessage(pkg)}
+                  </Text>
                 </View>
               </View>
             )}
