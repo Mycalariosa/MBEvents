@@ -9,7 +9,7 @@ import { forgotPasswordSchema } from '@/src/utils/validation';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { resetPassword } = useAuth();
+  const { sendOTP } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const { control, handleSubmit, formState: { errors } } = useForm({
@@ -19,7 +19,7 @@ export default function ForgotPasswordScreen() {
 
   const onSubmit = async (data: { email: string }) => {
     setLoading(true);
-    const { error } = await resetPassword(data.email);
+    const { error } = await sendOTP(data.email);
     setLoading(false);
 
     if (error) {
@@ -27,9 +27,10 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    Alert.alert('OTP Sent', 'Check your email for the verification code.', [
-      { text: 'OK', onPress: () => router.push({ pathname: '/(auth)/forgot-password/verify-otp' as never, params: { email: data.email } }) },
-    ]);
+    router.push({
+      pathname: '/(auth)/forgot-password/verify-otp' as never,
+      params: { email: data.email } as never,
+    });
   };
 
   return (

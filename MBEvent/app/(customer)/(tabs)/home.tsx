@@ -69,7 +69,15 @@ export default function HomeScreen() {
           <TouchableOpacity
             key={option.slug}
             style={[styles.planningCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() => router.push(`/(customer)/category/${option.slug}` as never)}
+            onPress={() =>
+              router.push(
+                (
+                  option.slug === 'wedding'
+                    ? `/(customer)/booking/${option.slug}/package`
+                    : `/(customer)/category/${option.slug}`
+                ) as never
+              )
+            }
           >
             <Text style={[styles.cardTitle, { color: colors.text }]}>{option.title}</Text>
             <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{option.description}</Text>

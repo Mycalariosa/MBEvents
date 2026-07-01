@@ -27,6 +27,8 @@ export async function processPayment(params: {
 
   if (status === 'paid') {
     await supabase.from('bookings').update({ payment_ref: referenceNumber }).eq('id', params.bookingId);
+    const { confirmBookingAfterPayment } = await import('@/src/services/booking');
+    await confirmBookingAfterPayment(params.bookingId);
   }
 
   return { error: null, payment: data, referenceNumber };

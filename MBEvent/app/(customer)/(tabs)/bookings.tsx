@@ -39,7 +39,7 @@ export default function BookingsScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer scroll={false}>
       <Text style={[styles.title, { color: colors.text }]}>My Bookings</Text>
 
       <FlatList
@@ -48,6 +48,7 @@ export default function BookingsScreen() {
         keyExtractor={(item) => item.id}
         showsHorizontalScrollIndicator={false}
         style={styles.filters}
+        scrollEnabled={true}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[
@@ -78,6 +79,7 @@ export default function BookingsScreen() {
         <FlatList
           data={bookings}
           keyExtractor={(item) => item.id}
+          scrollEnabled={true}
           renderItem={({ item }) => (
             <BookingCard
               booking={item as Booking & { packages?: { name: string }; event_types?: { name: string } }}

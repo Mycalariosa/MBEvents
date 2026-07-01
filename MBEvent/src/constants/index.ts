@@ -45,9 +45,9 @@ export const EVENT_CATEGORIES = [
   { slug: 'debut', name: 'Debut', icon: 'star' as const, color: '#16213e' },
   { slug: 'christening', name: 'Christening', icon: 'water' as const, color: '#1a1a2e' },
   { slug: 'corporate', name: 'Corporate', icon: 'briefcase' as const, color: '#16213e' },
-  { slug: 'anniversary', name: 'Anniversary', icon: 'rose' as const, color: '#efc07b' },
+  { slug: 'anniversary', name: 'Anniversary', icon: 'cards-heart' as const, color: '#efc07b' },
   { slug: 'graduation', name: 'Graduation', icon: 'school' as const, color: '#16213e' },
-  { slug: 'engagement', name: 'Engagement', icon: 'diamond-stone' as const, color: '#efc07b' },
+  { slug: 'engagement', name: 'Engagement', icon: 'ring' as const, color: '#efc07b' },
 ];
 
 export const WEDDING_SUBCATEGORIES = [
@@ -98,12 +98,12 @@ export const PLANNER_PROGRESS_STEPS = [
   { key: 'confirmed', label: 'Reservation Confirmed' },
   { key: 'planner_assigned', label: 'Planner Assigned' },
   { key: 'venue_reserved', label: 'Venue Reserved' },
+  { key: 'catering_confirmed', label: 'Catering Confirmed' },
+  { key: 'photographer_assigned', label: 'Photographer Assigned' },
   { key: 'cake_ordered', label: 'Cake Ordered' },
-  { key: 'invitation_printed', label: 'Invitation Printed' },
-  { key: 'dress_fitted', label: 'Dress Fitted' },
-  { key: 'suppliers_confirmed', label: 'Suppliers Confirmed' },
-  { key: 'final_meeting', label: 'Final Meeting' },
-  { key: 'event_finished', label: 'Event Finished' },
+  { key: 'decorations_in_progress', label: 'Decorations In Progress' },
+  { key: 'program_finalized', label: 'Program Finalized' },
+  { key: 'event_ready', label: 'Event Ready' },
 ];
 
 export const ONBOARDING_PAGES = [
@@ -132,11 +132,25 @@ export const PAYMENT_METHODS = [
 ];
 
 export const BOOKING_STATUSES = [
-  { id: 'pending', label: 'Pending', color: '#F59E0B' },
+  { id: 'pending', label: 'Pending Review', color: '#F59E0B' },
+  { id: 'changes_requested', label: 'Changes Requested', color: '#F97316' },
+  { id: 'approved', label: 'Approved', color: '#3B82F6' },
   { id: 'confirmed', label: 'Confirmed', color: '#22C55E' },
   { id: 'ongoing', label: 'Ongoing', color: '#6B4EFF' },
   { id: 'completed', label: 'Completed', color: '#374151' },
   { id: 'cancelled', label: 'Cancelled', color: '#EF4444' },
+];
+
+export const CONSULTATION_STATUSES = [
+  { id: 'waiting', label: 'Waiting', color: '#F59E0B' },
+  { id: 'in_consultation', label: 'In Consultation', color: '#3B82F6' },
+  { id: 'finished', label: 'Finished', color: '#22C55E' },
+];
+
+export const BRANCH_LOCATIONS = [
+  'MBEvents Main Office - Quezon City',
+  'MBEvents Branch - Makati',
+  'MBEvents Branch - Cebu',
 ];
 
 export const SERVICE_FEE_RATE = 0.05;

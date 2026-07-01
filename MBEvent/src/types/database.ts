@@ -1,5 +1,13 @@
 export type UserRole = 'customer' | 'admin';
-export type BookingStatus = 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'cancelled';
+export type BookingStatus =
+  | 'pending'
+  | 'approved'
+  | 'changes_requested'
+  | 'confirmed'
+  | 'ongoing'
+  | 'completed'
+  | 'cancelled';
+export type ConsultationStatus = 'waiting' | 'in_consultation' | 'finished';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type PaymentMethod = 'gcash' | 'maya' | 'card' | 'cash';
 export type PackageTier = 'bronze' | 'silver' | 'gold';
@@ -77,6 +85,10 @@ export interface Booking {
   payment_method: PaymentMethod | null;
   payment_ref: string | null;
   additional_requests: string | null;
+  event_address: string | null;
+  theme_color: string | null;
+  special_requests: string | null;
+  admin_change_notes: string | null;
   assigned_planner_id: string | null;
   created_at: string;
   event_types?: EventType;
@@ -123,6 +135,29 @@ export interface Favorite {
   service_type: string;
   service_item_id: string;
   item_name: string | null;
+  created_at: string;
+}
+
+export interface ConsultationAppointment {
+  id: string;
+  booking_id: string;
+  appointment_ref: string;
+  consultation_date: string;
+  consultation_time: string;
+  branch_location: string | null;
+  planner_id: string | null;
+  notes: string | null;
+  consultation_status: ConsultationStatus;
+  created_at: string;
+  profiles?: { full_name: string };
+}
+
+export interface BookingReview {
+  id: string;
+  booking_id: string;
+  customer_id: string;
+  rating: number;
+  review_text: string | null;
   created_at: string;
 }
 

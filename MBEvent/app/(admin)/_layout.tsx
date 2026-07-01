@@ -19,6 +19,8 @@ export default function AdminLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="manage" />
       <Stack.Screen name="booking-detail/[id]" />
+      <Stack.Screen name="schedule-consultation/[id]" />
+      <Stack.Screen name="scan-appointment" />
     </Stack>
   );
 }

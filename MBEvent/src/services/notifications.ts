@@ -20,8 +20,44 @@ export async function notifyBookingApproved(userId: string, bookingId: string) {
   return createNotification({
     userId,
     type: 'booking_approved',
-    title: 'Booking Approved',
-    body: 'Your booking has been approved by our team.',
+    title: 'Reservation Approved',
+    body: 'Your reservation has been approved. We will schedule your consultation appointment shortly.',
+    data: { bookingId },
+  });
+}
+
+export async function notifyConsultationScheduled(
+  userId: string,
+  bookingId: string,
+  appointmentRef: string,
+  date: string,
+  time: string
+) {
+  return createNotification({
+    userId,
+    type: 'consultation_scheduled',
+    title: 'Consultation Scheduled',
+    body: `Your consultation appointment (${appointmentRef}) is set for ${date} at ${time}.`,
+    data: { bookingId, appointmentRef },
+  });
+}
+
+export async function notifyChangesRequested(userId: string, bookingId: string, notes: string) {
+  return createNotification({
+    userId,
+    type: 'changes_requested',
+    title: 'Changes Requested',
+    body: notes || 'The admin has requested changes to your reservation.',
+    data: { bookingId },
+  });
+}
+
+export async function notifyReservationSubmitted(userId: string, bookingId: string) {
+  return createNotification({
+    userId,
+    type: 'reservation_submitted',
+    title: 'Reservation Submitted',
+    body: 'Your reservation has been submitted and is pending review.',
     data: { bookingId },
   });
 }
@@ -51,7 +87,7 @@ export async function notifyNewBooking(adminIds: string[], customerName: string)
     user_id: userId,
     type: 'new_booking',
     title: 'New Reservation',
-    body: `${customerName} submitted a new booking request.`,
+    body: `${customerName} submitted a new reservation request.`,
     data: {},
   }));
   return supabase.from('notifications').insert(inserts);
@@ -97,9 +133,13 @@ export async function getDashboardStats() {
   ]);
 
   const allBookings = (bookings.data ?? []) as Array<{ status: string; event_types?: { slug: string } }>;
-  const weddingCount = allBookings.filter((b) => b.event_types?.slug === 'wedding').length;
-  const birthdayCount = allBookings.filter((b) => b.event_types?.slug === 'birthday').length;
+  const bookedStatuses = new Set(['approved', 'confirmed', 'ongoing', 'completed']);
+  const isBooked = (booking: { status: string }) => bookedStatuses.has(booking.status);
+
+  const weddingCount = allBookings.filter((b) => b.event_types?.slug === 'wedding' && isBooked(b)).length;
+  const birthdayCount = allBookings.filter((b) => b.event_types?.slug === 'birthday' && isBooked(b)).length;
   const pending = allBookings.filter((b) => b.status === 'pending').length;
+  const approved = allBookings.filter((b) => b.status === 'approved').length;
   const confirmed = allBookings.filter((b) => b.status === 'confirmed').length;
   const revenue = ((payments.data ?? []) as Array<{ amount: number }>).reduce(
     (sum, p) => sum + Number(p.amount),
@@ -111,6 +151,7 @@ export async function getDashboardStats() {
     weddingBookings: weddingCount,
     birthdayBookings: birthdayCount,
     pendingReservations: pending,
+    approvedReservations: approved,
     confirmedReservations: confirmed,
     monthlyRevenue: revenue,
     upcomingEvents: allBookings.filter((b) => b.status === 'confirmed' || b.status === 'ongoing').length,

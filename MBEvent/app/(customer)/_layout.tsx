@@ -30,6 +30,8 @@ export default function CustomerLayout() {
       <Stack.Screen name="change-password" />
       <Stack.Screen name="payment-history" />
       <Stack.Screen name="booking-detail/[id]" />
+      <Stack.Screen name="appointment-pass/[id]" />
+      <Stack.Screen name="rate-booking/[id]" />
       <Stack.Screen name="booking" />
     </Stack>
   );

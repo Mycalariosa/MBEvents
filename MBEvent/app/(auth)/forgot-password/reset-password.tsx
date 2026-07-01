@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ScreenContainer, Input, Button, Header } from '@/src/components';
@@ -9,7 +9,8 @@ import { resetPasswordSchema } from '@/src/utils/validation';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const { updatePassword } = useAuth();
+  const { email, otp } = useLocalSearchParams<{ email: string; otp: string }>();
+  const { resetPasswordWithOtp } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const { control, handleSubmit, formState: { errors } } = useForm({
@@ -19,7 +20,7 @@ export default function ResetPasswordScreen() {
 
   const onSubmit = async (data: { password: string }) => {
     setLoading(true);
-    const { error } = await updatePassword(data.password);
+    const { error } = await resetPasswordWithOtp(email, otp, data.password);
     setLoading(false);
 
     if (error) {

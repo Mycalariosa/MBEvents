@@ -2,11 +2,12 @@ import { COLORS, FONT_SIZES } from '@/src/constants';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
 const SPLASH_MIN_MS = 2500;
 const PROFILE_WAIT_MS = 5000;
+const logoSource = require('../assets/images/startup-logo.jpg');
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -76,8 +77,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.logoContainer, animatedStyle]}>
-        <Text style={styles.logo}>MB</Text>
-        <Text style={styles.logoSub}>Events</Text>
+        <Image source={logoSource} style={styles.logoImage} resizeMode="contain" />
       </Animated.View>
       <Text style={styles.tagline}>Plan. Book. Celebrate.</Text>
     </View>
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoContainer: { alignItems: 'center' },
-  logo: { fontSize: 72, fontWeight: '800', color: COLORS.white },
-  logoSub: { fontSize: FONT_SIZES.xxxl, fontWeight: '300', color: COLORS.white, letterSpacing: 8, marginTop: -8 },
+  logoImage: { width: 220, height: 220 },
   tagline: { fontSize: FONT_SIZES.md, color: 'rgba(255,255,255,0.8)', marginTop: 24 },
 });

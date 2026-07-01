@@ -1,0 +1,11 @@
+{
+  "name": "mbevents",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix MBEvent",
+    "android": "npm run android --prefix MBEvent",
+    "ios": "npm run ios --prefix MBEvent",
+    "web": "npm run web --prefix MBEvent",
+    "install:app": "npm install --prefix MBEvent"
+  }
+}

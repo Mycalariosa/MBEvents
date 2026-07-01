@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { BarChart } from 'react-native-chart-kit';
+import { useRouter } from 'expo-router';
+import { useAdminViewStore } from '@/src/stores';
 import { ScreenContainer, StatCard } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
 import { getDashboardStats } from '@/src/services/notifications';
@@ -30,18 +32,42 @@ export default function AdminDashboard() {
     datasets: [{ data: [stats.weddingBookings || 1, stats.birthdayBookings || 1] }],
   };
 
+  const router = useRouter();
+
+  const navigateToBookings = (params: { status?: string; eventType?: string }) => {
+    const { status } = params;
+    useAdminViewStore.getState().setBookingFilter(status);
+    const query = new URLSearchParams();
+    if (params.eventType) query.set('eventType', params.eventType);
+    router.push(`/(admin)/(tabs)/bookings${query.toString() ? `?${query.toString()}` : ''}` as never);
+  };
+
   return (
     <ScreenContainer>
       <Text style={[styles.title, { color: colors.text }]}>Dashboard</Text>
 
       <View style={styles.statsGrid}>
-        <StatCard label="Total Customers" value={stats.totalCustomers} />
-        <StatCard label="Weddings Booked" value={stats.weddingBookings} color="#FF6B9D" />
-        <StatCard label="Birthdays Booked" value={stats.birthdayBookings} color="#FFB347" />
-        <StatCard label="Pending" value={stats.pendingReservations} color="#F59E0B" />
-        <StatCard label="Confirmed" value={stats.confirmedReservations} color="#22C55E" />
-        <StatCard label="Monthly Revenue" value={formatCurrency(stats.monthlyRevenue)} />
-        <StatCard label="Upcoming Events" value={stats.upcomingEvents} color="#6B4EFF" />
+        <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/customers' as never)} style={styles.cardWrapper}>
+          <StatCard label="Total Customers" value={stats.totalCustomers} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateToBookings({ eventType: 'wedding' })} style={styles.cardWrapper}>
+          <StatCard label="Weddings Booked" value={stats.weddingBookings} color="#FF6B9D" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateToBookings({ eventType: 'birthday' })} style={styles.cardWrapper}>
+          <StatCard label="Birthdays Booked" value={stats.birthdayBookings} color="#FFB347" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateToBookings({ status: 'pending' })} style={styles.cardWrapper}>
+          <StatCard label="Pending" value={stats.pendingReservations} color="#F59E0B" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateToBookings({ status: 'confirmed' })} style={styles.cardWrapper}>
+          <StatCard label="Confirmed" value={stats.confirmedReservations} color="#22C55E" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/reports' as never)} style={styles.cardWrapper}>
+          <StatCard label="Monthly Revenue" value={formatCurrency(stats.monthlyRevenue)} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(admin)/(tabs)/reports' as never)} style={styles.cardWrapper}>
+          <StatCard label="Upcoming Events" value={stats.upcomingEvents} color="#6B4EFF" />
+        </TouchableOpacity>
       </View>
 
       <Text style={[styles.chartTitle, { color: colors.text }]}>Bookings Overview</Text>
@@ -68,6 +94,7 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   title: { fontSize: FONT_SIZES.xxl, fontWeight: '700', marginBottom: SPACING.lg },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, justifyContent: 'space-between' },
+  cardWrapper: { flexBasis: '48%', marginBottom: SPACING.sm },
   chartTitle: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginTop: SPACING.lg, marginBottom: SPACING.md },
   chart: { borderRadius: 16 },
 });

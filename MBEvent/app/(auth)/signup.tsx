@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ScreenContainer, Input, Button, Header } from '@/src/components';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTheme } from '@/src/hooks/useTheme';
+import { isSupabaseConfigured } from '@/src/lib/supabase';
 import { signupSchema, type SignupFormData } from '@/src/utils/validation';
 import { SPACING, FONT_SIZES } from '@/src/constants';
 
@@ -29,29 +30,43 @@ export default function SignupScreen() {
 
   const onSubmit = async (data: SignupFormData) => {
     setLoading(true);
-    const { error } = await signUp({
-      email: data.email,
-      password: data.password,
-      fullName: data.fullName,
-      username: data.username,
-      phone: data.phone,
-    });
-    setLoading(false);
 
-    if (error) {
-      Alert.alert('Sign Up Failed', error);
-      return;
+    try {
+      const { error } = await signUp({
+        email: data.email,
+        password: data.password,
+        fullName: data.fullName,
+        username: data.username,
+        phone: data.phone,
+      });
+
+      if (error) {
+        Alert.alert('Sign Up Failed', error);
+        return;
+      }
+
+      Alert.alert('Success', 'Account created! Please check your email to verify, then login.', [
+        { text: 'OK', onPress: () => router.replace('/(auth)/login' as never) },
+      ]);
+    } finally {
+      setLoading(false);
     }
-
-    Alert.alert('Success', 'Account created! Please check your email to verify, then login.', [
-      { text: 'OK', onPress: () => router.replace('/(auth)/login' as never) },
-    ]);
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer keyboardAvoiding>
       <Header title="Create Account" />
-      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Simple registration to get started</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        Simple registration to get started
+      </Text>
+
+      {!isSupabaseConfigured && (
+        <View style={[styles.configBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
+          <Text style={[styles.configBannerText, { color: colors.text }]}>
+            Supabase is not configured. Copy .env.example to .env, add your project URL and anon key, then restart Expo.
+          </Text>
+        </View>
+      )}
 
       {(['fullName', 'username', 'email', 'phone'] as const).map((field) => (
         <Controller
@@ -60,12 +75,20 @@ export default function SignupScreen() {
           name={field}
           render={({ field: { onChange, value } }) => (
             <Input
-              label={field === 'fullName' ? 'Full Name' : field === 'phone' ? 'Mobile Number' : field.charAt(0).toUpperCase() + field.slice(1)}
+              label={
+                field === 'fullName'
+                  ? 'Full Name'
+                  : field === 'phone'
+                    ? 'Mobile Number'
+                    : field.charAt(0).toUpperCase() + field.slice(1)
+              }
               value={value}
               onChangeText={onChange}
               error={errors[field]?.message}
               autoCapitalize={field === 'email' || field === 'username' ? 'none' : 'words'}
-              keyboardType={field === 'email' ? 'email-address' : field === 'phone' ? 'phone-pad' : 'default'}
+              keyboardType={
+                field === 'email' ? 'email-address' : field === 'phone' ? 'phone-pad' : 'default'
+              }
             />
           )}
         />
@@ -75,7 +98,13 @@ export default function SignupScreen() {
         control={control}
         name="password"
         render={({ field: { onChange, value } }) => (
-          <Input label="Password" value={value} onChangeText={onChange} error={errors.password?.message} isPassword />
+          <Input
+            label="Password"
+            value={value}
+            onChangeText={onChange}
+            error={errors.password?.message}
+            isPassword
+          />
         )}
       />
 
@@ -83,7 +112,13 @@ export default function SignupScreen() {
         control={control}
         name="confirmPassword"
         render={({ field: { onChange, value } }) => (
-          <Input label="Confirm Password" value={value} onChangeText={onChange} error={errors.confirmPassword?.message} isPassword />
+          <Input
+            label="Confirm Password"
+            value={value}
+            onChangeText={onChange}
+            error={errors.confirmPassword?.message}
+            isPassword
+          />
         )}
       />
 
@@ -103,5 +138,12 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   subtitle: { fontSize: FONT_SIZES.sm, marginBottom: SPACING.lg },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.lg },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING.lg, marginBottom: SPACING.lg },
+  configBanner: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  configBannerText: { fontSize: FONT_SIZES.sm, lineHeight: 20 },
 });

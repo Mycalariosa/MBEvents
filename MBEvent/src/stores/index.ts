@@ -28,6 +28,12 @@ interface WizardState {
   guestCount: number;
   eventDate: string | null;
   eventTime: string | null;
+  eventAddress: string;
+  themeColor: string;
+  specialRequests: string;
+  customerName: string;
+  contactNumber: string;
+  email: string;
   selections: WizardSelection[];
   additionalRequests: string;
   currentStep: number;
@@ -37,6 +43,12 @@ interface WizardState {
   setGuestCount: (count: number) => void;
   setEventDate: (date: string) => void;
   setEventTime: (time: string) => void;
+  setEventAddress: (address: string) => void;
+  setThemeColor: (color: string) => void;
+  setSpecialRequests: (text: string) => void;
+  setCustomerName: (name: string) => void;
+  setContactNumber: (phone: string) => void;
+  setEmail: (email: string) => void;
   addSelection: (selection: WizardSelection) => void;
   setAdditionalRequests: (text: string) => void;
   setCurrentStep: (step: number) => void;
@@ -51,6 +63,12 @@ const initialWizardState = {
   guestCount: 50,
   eventDate: null,
   eventTime: null,
+  eventAddress: '',
+  themeColor: '',
+  specialRequests: '',
+  customerName: '',
+  contactNumber: '',
+  email: '',
   selections: [] as WizardSelection[],
   additionalRequests: '',
   currentStep: 0,
@@ -64,6 +82,12 @@ export const useWizardStore = create<WizardState>((set) => ({
   setGuestCount: (guestCount) => set({ guestCount }),
   setEventDate: (eventDate) => set({ eventDate }),
   setEventTime: (eventTime) => set({ eventTime }),
+  setEventAddress: (eventAddress) => set({ eventAddress }),
+  setThemeColor: (themeColor) => set({ themeColor }),
+  setSpecialRequests: (specialRequests) => set({ specialRequests }),
+  setCustomerName: (customerName) => set({ customerName }),
+  setContactNumber: (contactNumber) => set({ contactNumber }),
+  setEmail: (email) => set({ email }),
   addSelection: (selection) =>
     set((s) => ({
       selections: [
@@ -119,4 +143,18 @@ export const useGenericBookingStore = create<GenericBookingState>((set) => ({
       eventTime: null,
       additionalRequests: '',
     }),
+}));
+
+interface AdminViewState {
+  bookingFilter?: string | undefined;
+  setBookingFilter: (status?: string) => void;
+  bookingCustomerId?: string | undefined;
+  setBookingCustomerId: (id?: string) => void;
+}
+
+export const useAdminViewStore = create<AdminViewState>((set) => ({
+  bookingFilter: undefined,
+  setBookingFilter: (status) => set({ bookingFilter: status }),
+  bookingCustomerId: undefined,
+  setBookingCustomerId: (id) => set({ bookingCustomerId: id }),
 }));
