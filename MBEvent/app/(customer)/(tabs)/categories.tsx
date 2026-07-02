@@ -1,16 +1,17 @@
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ScreenContainer } from '@/src/components';
+import { Header, ScreenContainer } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
 import { EVENT_CATEGORIES, SPACING, FONT_SIZES } from '@/src/constants';
 
 export default function CategoriesScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
 
   return (
     <ScreenContainer>
+      <Header title="MBEvents" showBack={false} showLogo />
       <Text style={[styles.title, { color: colors.text }]}>Event Categories</Text>
       <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
         Choose an event type to browse suppliers and packages

@@ -13,7 +13,7 @@ export async function getAppointmentByBooking(bookingId: string) {
 export async function getAppointmentByRef(ref: string) {
   const { data, error } = await supabase
     .from('consultation_appointments')
-    .select('*, bookings(*, packages(name), event_types(name, slug), profiles(full_name, email, phone))')
+    .select('*, bookings(*, packages(name), event_types(name, slug))')
     .eq('appointment_ref', ref)
     .maybeSingle();
   return { appointment: data, error };

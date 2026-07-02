@@ -27,9 +27,9 @@ export function Button({
   const { colors } = useTheme();
 
   const variantStyles = {
-    primary: { bg: colors.primary, text: '#FFF', border: colors.accent ?? colors.primary },
+    primary: { bg: colors.primary, text: '#FFF', border: colors.primaryDark },
     secondary: { bg: colors.surface, text: colors.text, border: colors.border },
-    outline: { bg: 'transparent', text: colors.primary, border: colors.accent ?? colors.primary },
+    outline: { bg: 'transparent', text: colors.primary, border: colors.primary },
     ghost: { bg: 'transparent', text: colors.textSecondary, border: 'transparent' },
     danger: { bg: colors.error, text: '#FFF', border: colors.error },
   };

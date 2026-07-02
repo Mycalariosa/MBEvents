@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { ScreenContainer, Button } from '@/src/components';
+import { ScreenContainer, Button, Header } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
 import { SPACING, FONT_SIZES } from '@/src/constants';
+
 
 export default function ConfirmationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -12,7 +13,12 @@ export default function ConfirmationScreen() {
 
   return (
     <ScreenContainer padded={false}>
+      <View style={styles.headerWrap}>
+        {/* Custom header (stack header is hidden in booking/_layout.tsx) */}
+        <Header title="Reservation Submitted" />
+      </View>
       <View style={styles.container}>
+
         <View style={[styles.iconCircle, { backgroundColor: colors.warning + '20' }]}>
           <MaterialCommunityIcons name="clock-outline" size={80} color={colors.warning} />
         </View>
@@ -38,7 +44,9 @@ export default function ConfirmationScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerWrap: { width: '100%' },
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.xl },
+
   iconCircle: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center', marginBottom: SPACING.lg },
   title: { fontSize: FONT_SIZES.xxl, fontWeight: '800', marginBottom: SPACING.sm },
   subtitle: { fontSize: FONT_SIZES.md, textAlign: 'center', marginBottom: SPACING.lg },

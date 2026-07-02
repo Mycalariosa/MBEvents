@@ -19,8 +19,9 @@ export default function CustomerTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: { fontWeight: '600' },
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
       }}
     >

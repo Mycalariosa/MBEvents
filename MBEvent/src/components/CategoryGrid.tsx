@@ -5,7 +5,7 @@ import { useTheme } from '@/src/hooks/useTheme';
 import { SPACING, FONT_SIZES, EVENT_CATEGORIES } from '@/src/constants';
 
 export function CategoryGrid() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
 
   return (
@@ -24,7 +24,7 @@ export function CategoryGrid() {
             <MaterialCommunityIcons
               name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
               size={24}
-              color={item.color}
+              color={isDark ? item.color : colors.primaryDark}
             />
           </View>
           <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>

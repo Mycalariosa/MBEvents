@@ -13,8 +13,15 @@ import { formatDate } from '@/src/utils/pricing';
 import { BRANCH_LOCATIONS, SPACING, FONT_SIZES } from '@/src/constants';
 import type { Booking } from '@/src/types/database';
 
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function ScheduleConsultationScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const { profile } = useAuth();
   const { colors } = useTheme();
   const router = useRouter();
@@ -29,12 +36,28 @@ export default function ScheduleConsultationScreen() {
   const [isLoadingBooking, setIsLoadingBooking] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const minConsultationDate = formatDateInput(new Date());
+  const bookingId = typeof id === 'string' ? id : Array.isArray(id) ? id[0] : '';
+
   useEffect(() => {
-    if (id) {
+    if (!bookingId) {
+      setErrorMsg('Reservation not found');
+      setBooking(null);
+      setIsLoadingBooking(false);
+      return;
+    }
+
+    const loadBooking = async () => {
       setIsLoadingBooking(true);
       setErrorMsg(null);
-      getBookingDetail(id).then(({ booking: b, appointment }) => {
-        if (!b) {
+
+      try {
+        const { booking: b, appointment, error } = await getBookingDetail(bookingId);
+
+        if (error) {
+          setErrorMsg(error.message ?? 'Failed to load reservation');
+          setBooking(null);
+        } else if (!b) {
           setErrorMsg('Reservation not found');
           setBooking(null);
         } else {
@@ -45,17 +68,25 @@ export default function ScheduleConsultationScreen() {
             ]);
           }
         }
-        setIsLoadingBooking(false);
-      }).catch((err) => {
+      } catch (err) {
         setErrorMsg(err?.message ?? 'Failed to load reservation');
+        setBooking(null);
+      } finally {
         setIsLoadingBooking(false);
-      });
-    }
-  }, [id]);
+      }
+    };
+
+    loadBooking();
+  }, [bookingId, router]);
 
   const handleConfirm = async () => {
     if (!id || !booking || !consultationDate || !consultationTime) {
       Alert.alert('Missing Info', 'Please enter consultation date and time.');
+      return;
+    }
+
+    if (consultationDate < minConsultationDate) {
+      Alert.alert('Invalid Date', 'Please choose today or a future date for the consultation.');
       return;
     }
 
@@ -90,7 +121,7 @@ export default function ScheduleConsultationScreen() {
     Alert.alert(
       'Appointment Confirmed',
       `Appointment ${appointment.appointment_ref} has been created. The customer will receive their appointment pass.`,
-      [{ text: 'OK', onPress: () => router.replace(`/(admin)/booking-detail/${id}` as never) }]
+      [{ text: 'OK', onPress: () => router.replace({ pathname: '/(admin)/booking-detail/[id]' as never, params: { id: bookingId } } as never) }]
     );
   };
 
@@ -164,7 +195,15 @@ export default function ScheduleConsultationScreen() {
         <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ margin: 20, borderRadius: 12, overflow: 'hidden', backgroundColor: colors.card }}>
             <Calendar
-              onDayPress={(day) => { setConsultationDate(day.dateString); setShowCalendar(false); }}
+              minDate={minConsultationDate}
+              onDayPress={(day) => {
+                if (day.dateString < minConsultationDate) {
+                  Alert.alert('Invalid Date', 'Please choose today or a future date for the consultation.');
+                  return;
+                }
+                setConsultationDate(day.dateString);
+                setShowCalendar(false);
+              }}
               markedDates={consultationDate ? { [consultationDate]: { selected: true } } : {}}
             />
             <View style={{ padding: SPACING.md }}>

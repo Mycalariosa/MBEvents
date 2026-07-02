@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from
 import { BarChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
 import { useAdminViewStore } from '@/src/stores';
-import { ScreenContainer, StatCard } from '@/src/components';
+import { Header, ScreenContainer, StatCard } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
 import { getDashboardStats } from '@/src/services/notifications';
 import { formatCurrency } from '@/src/utils/pricing';
@@ -44,6 +44,7 @@ export default function AdminDashboard() {
 
   return (
     <ScreenContainer>
+      <Header title="Dashboard" showBack={false} showLogo />
       <Text style={[styles.title, { color: colors.text }]}>Dashboard</Text>
 
       <View style={styles.statsGrid}>

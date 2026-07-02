@@ -21,6 +21,7 @@ export default function LoginScreen() {
 
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [rememberedUsers, setRememberedUsers] = useState<string[]>([]);
   const [rememberedLast, setRememberedLast] = useState<string>('');
 
@@ -78,7 +79,7 @@ export default function LoginScreen() {
   );
 
   const suggestionCandidates = useMemo(() => {
-    if (!rememberMe) return [];
+    if (!rememberMe || !showSuggestions) return [];
 
     const typed = (watchedIdentifier ?? '').trim().toLowerCase();
     if (typed.length === 0) return [];
@@ -89,11 +90,12 @@ export default function LoginScreen() {
     return unique
       .filter((id) => id.toLowerCase().startsWith(typed))
       .slice(0, 6);
-  }, [rememberMe, rememberedUsers, watchedIdentifier]);
+  }, [rememberMe, rememberedUsers, showSuggestions, watchedIdentifier]);
 
   const applySuggestion = useCallback(
     (id: string) => {
       setValue('identifier', id, { shouldValidate: true });
+      setShowSuggestions(false);
     },
     [setValue]
   );
@@ -171,7 +173,10 @@ export default function LoginScreen() {
             <Input
               label="Username or Email"
               value={value}
-              onChangeText={onChange}
+              onChangeText={(text) => {
+                onChange(text);
+                setShowSuggestions(text.trim().length > 0 && rememberMe);
+              }}
               error={errors.identifier?.message}
               autoCapitalize="none"
             />

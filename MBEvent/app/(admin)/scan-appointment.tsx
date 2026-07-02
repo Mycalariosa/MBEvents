@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer, Header } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
 import { getAppointmentByRef } from '@/src/services/appointments';
+import { getBookingDetail, parseBookingQrPayload } from '@/src/services/booking';
 import { SPACING, FONT_SIZES } from '@/src/constants';
 
 export default function ScanAppointmentScreen() {
@@ -15,13 +16,35 @@ export default function ScanAppointmentScreen() {
   const [scanned, setScanned] = useState(false);
 
   const openBooking = async (ref: string) => {
-    const trimmed = ref.trim().toUpperCase();
-    if (!trimmed.startsWith('APT-')) {
-      Alert.alert('Invalid Code', 'Appointment ID must start with APT-');
+    const trimmed = ref.trim();
+    const bookingIdFromQr = parseBookingQrPayload(trimmed);
+
+    if (bookingIdFromQr) {
+      try {
+        const { booking } = await getBookingDetail(bookingIdFromQr);
+        if (!booking) {
+          Alert.alert('Not Found', 'No booking found with this QR code.');
+          setScanned(false);
+          return;
+        }
+
+        router.replace(`/(admin)/booking-detail/${bookingIdFromQr}` as never);
+        return;
+      } catch {
+        Alert.alert('Not Found', 'No booking found with this QR code.');
+        setScanned(false);
+        return;
+      }
+    }
+
+    const lookup = trimmed.toUpperCase();
+    if (!lookup.startsWith('APT-')) {
+      Alert.alert('Invalid Code', 'Scan a booking QR or enter an appointment ID that starts with APT-.');
+      setScanned(false);
       return;
     }
 
-    const { appointment, error } = await getAppointmentByRef(trimmed);
+    const { appointment, error } = await getAppointmentByRef(lookup);
     if (error || !appointment) {
       Alert.alert('Not Found', 'No appointment found with this ID.');
       setScanned(false);
@@ -42,7 +65,7 @@ export default function ScanAppointmentScreen() {
 
   return (
     <ScreenContainer scroll={false}>
-      <Header title="Scan Appointment QR" />
+      <Header title="Scan Booking QR" />
 
       {scanning ? (
         <View style={styles.cameraWrap}>

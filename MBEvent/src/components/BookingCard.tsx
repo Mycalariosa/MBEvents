@@ -12,7 +12,7 @@ interface BookingCardProps {
 }
 
 export function BookingCard({ booking, showActions = true, onCancel }: BookingCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const statusInfo = BOOKING_STATUSES.find((s) => s.id === booking.status);
 
@@ -22,10 +22,10 @@ export function BookingCard({ booking, showActions = true, onCancel }: BookingCa
       onPress={() => router.push(`/(customer)/booking-detail/${booking.id}` as never)}
     >
       <View style={styles.header}>
-        <Text style={[styles.eventType, { color: colors.text }]}>
+        <Text style={[styles.eventType, { color: colors.accent }]}> 
           {booking.event_types?.name ?? 'Event'}
         </Text>
-        <View style={[styles.statusBadge, { backgroundColor: (statusInfo?.color ?? colors.primary) + '20' }]}>
+        <View style={[styles.statusBadge, { backgroundColor: (statusInfo?.color ?? colors.primary) + '20' }]}> 
           <Text style={[styles.statusText, { color: statusInfo?.color ?? colors.primary }]}>
             {statusInfo?.label ?? booking.status}
           </Text>
@@ -37,7 +37,7 @@ export function BookingCard({ booking, showActions = true, onCancel }: BookingCa
       <Text style={[styles.date, { color: colors.textSecondary }]}>
         {formatDate(booking.event_date)} · {formatTime(booking.event_time)}
       </Text>
-      <Text style={[styles.amount, { color: colors.primary }]}>
+      <Text style={[styles.amount, { color: isDark ? '#FFF' : colors.primary }]}>
         {formatCurrency(Number(booking.total))}
       </Text>
       {showActions && booking.status === 'pending' && onCancel && (
@@ -50,13 +50,23 @@ export function BookingCard({ booking, showActions = true, onCancel }: BookingCa
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16, borderWidth: 1, padding: SPACING.md, marginBottom: SPACING.md },
+  card: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   eventType: { fontSize: FONT_SIZES.md, fontWeight: '700' },
   statusBadge: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: 8 },
   statusText: { fontSize: FONT_SIZES.xs, fontWeight: '600' },
   package: { fontSize: FONT_SIZES.sm, marginTop: SPACING.xs },
   date: { fontSize: FONT_SIZES.sm, marginTop: 2 },
-  amount: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginTop: SPACING.sm },
+  amount: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginTop: SPACING.sm, color: '#D4AF37' },
   cancelBtn: { marginTop: SPACING.sm, borderWidth: 1, borderRadius: 8, paddingVertical: SPACING.sm, alignItems: 'center' },
 });

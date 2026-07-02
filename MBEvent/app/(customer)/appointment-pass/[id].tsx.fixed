@@ -80,31 +80,35 @@ export default function AppointmentPassScreen() {
     event_types?: { name: string };
     profiles?: { full_name: string };
   };
-  const isApprovedAppointment = booking.status === 'approved' && !!appointment;
-  const statusInfo = isApprovedAppointment
+  const isBookingPass = booking.status === 'approved';
+  const statusInfo = isBookingPass
     ? BOOKING_STATUSES.find((s) => s.id === booking.status)
     : CONSULTATION_STATUSES.find((s) => s.id === appointment?.consultation_status);
 
-  const qrContent = buildBookingQrPayload(booking.id);
+  const qrContent = isBookingPass
+    ? buildBookingQrPayload(booking.id)
+    : `APPT:${appointment?.appointment_ref}|DATE:${appointment?.consultation_date}|TIME:${appointment?.consultation_time}|LOC:${appointment?.branch_location || 'TBD'}`;
 
   const handleShare = async () => {
     await Share.share({
-      message: `MBEvents Appointment Details\nAppointment ID: ${appointment?.appointment_ref ?? booking.id}\nEvent: ${b.event_types?.name ?? 'Custom Event'}\nDate: ${appointment?.consultation_date ? formatDate(appointment.consultation_date) : booking.event_date ? formatDate(booking.event_date) : 'TBD'}\nTime: ${appointment?.consultation_time ? formatTime(appointment.consultation_time) : booking.event_time ? formatTime(booking.event_time) : 'TBD'}\nLocation: ${appointment?.branch_location ?? booking.event_address ?? 'TBD'}`,
+      message: isBookingPass
+        ? `MBEvents Booking Pass\nBooking ID: ${booking.id}\nEvent: ${b.event_types?.name ?? 'Custom Event'}\nDate: ${booking.event_date ? formatDate(booking.event_date) : 'TBD'}\nTime: ${booking.event_time ? formatTime(booking.event_time) : 'TBD'}`
+        : `MBEvents Appointment Pass\nID: ${appointment?.appointment_ref}\nDate: ${appointment?.consultation_date ? formatDate(appointment.consultation_date) : 'TBD'}\nTime: ${appointment?.consultation_time ? formatTime(appointment.consultation_time) : 'TBD'}\nLocation: ${appointment?.branch_location ?? 'TBD'}`,
     });
   };
 
   return (
     <ScreenContainer>
-      <Header title={isApprovedAppointment ? 'Appointment Details' : 'Appointment Pass'} rightAction={{ icon: 'share', onPress: handleShare }} />
+      <Header title={isBookingPass ? 'Booking Pass' : 'Appointment Pass'} rightAction={{ icon: 'share', onPress: handleShare }} />
 
       <View style={[styles.pass, { backgroundColor: colors.primary }]}> 
         <Text style={styles.brand}>MBEvents</Text>
-        <Text style={styles.passTitle}>{isApprovedAppointment ? 'Appointment Details' : 'Appointment Pass'}</Text>
+        <Text style={styles.passTitle}>{isBookingPass ? 'Booking Pass' : 'Appointment Pass'}</Text>
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-        <Text style={[styles.refLabel, { color: colors.textSecondary }]}>{isApprovedAppointment ? 'Appointment ID' : 'Appointment ID'}</Text>
-        <Text style={[styles.ref, { color: colors.primary }]}>{appointment?.appointment_ref ?? booking.id}</Text>
+        <Text style={[styles.refLabel, { color: colors.textSecondary }]}>{isBookingPass ? 'Booking ID' : 'Appointment ID'}</Text>
+        <Text style={[styles.ref, { color: colors.primary }]}>{isBookingPass ? booking.id : appointment?.appointment_ref ?? 'N/A'}</Text>
 
         <View style={styles.row}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Customer</Text>
@@ -134,7 +138,7 @@ export default function AppointmentPassScreen() {
           </View>
         )}
 
-        {appointment && (
+        {appointment && !isBookingPass && (
           <>
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <Text style={[styles.consultTitle, { color: colors.text }]}>Consultation</Text>
@@ -166,11 +170,10 @@ export default function AppointmentPassScreen() {
         </View>
 
         <View style={styles.qrContainer}>
-          <Text style={styles.qrLabel}>Booking QR</Text>
           <QRCode value={qrContent} size={180} backgroundColor="#FFF" color={colors.primary} />
         </View>
         <Text style={[styles.qrHint, { color: colors.textSecondary }]}> 
-          This is the single booking QR for admin verification. Your scheduled consultation date and time are shown above.
+          {isBookingPass ? 'Show this QR to the admin to verify your booking.' : 'Present this QR code at reception on your appointment day.'}
         </Text>
       </View>
     </ScreenContainer>
@@ -190,7 +193,6 @@ const styles = StyleSheet.create({
   consultTitle: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: SPACING.sm },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: 8, marginTop: SPACING.sm },
   qrContainer: { alignItems: 'center', marginTop: SPACING.lg, padding: SPACING.md, backgroundColor: '#FFF', borderRadius: 12 },
-  qrLabel: { fontSize: FONT_SIZES.sm, fontWeight: '600', marginBottom: SPACING.sm },
   qrHint: { fontSize: FONT_SIZES.sm, textAlign: 'center', marginTop: SPACING.md, lineHeight: 20 },
   errorText: { fontSize: FONT_SIZES.lg, fontWeight: '600', textAlign: 'center' },
   backBtn: { borderRadius: 10, padding: SPACING.md, alignItems: 'center', minWidth: 120 },

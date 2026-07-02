@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { ScreenContainer, BookingCard, EmptyState } from '@/src/components';
+import { ScreenContainer, BookingCard, EmptyState, Header } from '@/src/components';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTheme } from '@/src/hooks/useTheme';
 import { getBookings, cancelBooking } from '@/src/services/booking';
@@ -40,6 +40,8 @@ export default function BookingsScreen() {
 
   return (
     <ScreenContainer scroll={false}>
+      <Header title="MBEvents" showBack={false} showLogo />
+
       <Text style={[styles.title, { color: colors.text }]}>My Bookings</Text>
 
       <FlatList

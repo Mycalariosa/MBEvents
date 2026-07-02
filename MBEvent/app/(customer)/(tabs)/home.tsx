@@ -1,4 +1,4 @@
-import { BookingCard, CategoryGrid, ScreenContainer, SearchBar } from '@/src/components';
+import { BookingCard, CategoryGrid, Header, ScreenContainer, SearchBar } from '@/src/components';
 import { FONT_SIZES, SPACING } from '@/src/constants';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTheme } from '@/src/hooks/useTheme';
@@ -33,7 +33,7 @@ const planningOptions = [
 
 export default function HomeScreen() {
   const { profile } = useAuth();
-  const { colors } = useTheme();
+  const { isDark, colors } = useTheme();
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
@@ -46,6 +46,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer>
+      <Header title="MBEvents" showBack={false} showLogo />
       <View style={styles.topBar}>
         <View>
           <Text style={[styles.greeting, { color: colors.textSecondary }]}>Welcome back,</Text>
@@ -94,7 +95,7 @@ export default function HomeScreen() {
                   ]}
                 >
                   <Text style={[styles.tierLabel, { color: tier.label === 'Gold' ? '#FFF' : colors.text }]}>{tier.label}</Text>
-                  <Text style={[styles.tierPrice, { color: tier.label === 'Gold' ? '#FFF' : colors.primary }]}>{tier.price}</Text>
+                  <Text style={[styles.tierPrice, { color: tier.label === 'Gold' ? '#FFF' : isDark ? '#FFF' : colors.primaryDark }]}>{tier.price}</Text>
                 </View>
               ))}
             </View>

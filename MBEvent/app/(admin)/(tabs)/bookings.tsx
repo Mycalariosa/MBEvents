@@ -67,7 +67,7 @@ export default function AdminBookingsScreen() {
       {
         text: 'Open Scheduler',
         onPress: () => {
-          router.push(`/(admin)/schedule-consultation/${booking.id}` as never);
+          router.push({ pathname: '/(admin)/schedule-consultation/[id]' as never, params: { id: booking.id } } as never);
         },
       },
     ]);
@@ -177,7 +177,7 @@ export default function AdminBookingsScreen() {
                 {b.status === 'approved' && (
                   <TouchableOpacity
                     style={[styles.scheduleBtn, { borderColor: colors.primary }]}
-                    onPress={() => router.push(`/(admin)/schedule-consultation/${b.id}` as never)}
+                    onPress={() => router.push({ pathname: '/(admin)/schedule-consultation/[id]' as never, params: { id: b.id } } as never)}
                   >
                     <Text style={{ color: colors.primary, fontWeight: '600', fontSize: FONT_SIZES.sm }}>Schedule Consultation</Text>
                   </TouchableOpacity>

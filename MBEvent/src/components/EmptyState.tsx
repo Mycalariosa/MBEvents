@@ -14,7 +14,7 @@ export function EmptyState({ icon, title, message }: EmptyStateProps) {
 
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons name={icon} size={64} color={colors.textSecondary} />
+      <MaterialCommunityIcons name={icon} size={64} color={colors.accent} />
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       {message && <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>}
     </View>

@@ -14,8 +14,8 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search...', onFi
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <MaterialCommunityIcons name="magnify" size={22} color={colors.textSecondary} />
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+      <MaterialCommunityIcons name="magnify" size={22} color={colors.primary} />
       <TextInput
         style={[styles.input, { color: colors.text }]}
         value={value}
@@ -25,7 +25,7 @@ export function SearchBar({ value, onChangeText, placeholder = 'Search...', onFi
       />
       {onFilter && (
         <TouchableOpacity onPress={onFilter}>
-          <MaterialCommunityIcons name="filter-variant" size={22} color={colors.primary} />
+          <MaterialCommunityIcons name="filter-variant" size={22} color={colors.accent} />
         </TouchableOpacity>
       )}
     </View>

@@ -1,36 +1,48 @@
+import appLogo from '@/assets/images/startup-logo.jpg';
 import { FONT_SIZES, SPACING } from '@/src/constants';
 import { useTheme } from '@/src/hooks/useTheme';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface HeaderProps {
   title: string;
   showBack?: boolean;
   rightAction?: { icon: keyof typeof MaterialCommunityIcons.glyphMap; onPress: () => void };
+  showLogo?: boolean;
 }
 
-export function Header({ title, showBack = true, rightAction }: HeaderProps) {
+export function Header({ title, showBack = true, rightAction, showLogo = false }: HeaderProps) {
   const { colors } = useTheme();
   const router = useRouter();
 
   return (
-    <View style={[styles.header, { backgroundColor: colors.primaryDark, borderBottomColor: 'transparent' }]}>
-      {showBack ? (
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.accent} />
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.backBtn} />
-      )}
-      <Text style={[styles.title, { color: '#FFF' }]} numberOfLines={1}>{title}</Text>
-      {rightAction ? (
-        <TouchableOpacity onPress={rightAction.onPress} style={styles.backBtn}>
-          <MaterialCommunityIcons name={rightAction.icon} size={24} color={colors.accent} />
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.backBtn} />
-      )}
+    <View style={[styles.header, { backgroundColor: colors.primaryDark, borderBottomColor: 'transparent' }]}> 
+      <View style={styles.leftContainer}>
+        {showBack ? (
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.accent} />
+          </TouchableOpacity>
+        ) : showLogo ? (
+          <Image source={appLogo} style={styles.logo} resizeMode="contain" />
+        ) : (
+          <View style={styles.sidePlaceholder} />
+        )}
+      </View>
+
+      <View style={styles.titleWrap}>
+        <Text style={[styles.title, { color: colors.accent }]} numberOfLines={1}>{title}</Text>
+      </View>
+
+      <View style={styles.rightContainer}>
+        {rightAction ? (
+          <TouchableOpacity onPress={rightAction.onPress} style={styles.iconButton}>
+            <MaterialCommunityIcons name={rightAction.icon} size={24} color={colors.accent} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.sidePlaceholder} />
+        )}
+      </View>
     </View>
   );
 }
@@ -42,7 +54,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.md,
     borderBottomWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  backBtn: { width: 40, alignItems: 'center' },
-  title: { flex: 1, fontSize: FONT_SIZES.lg, fontWeight: '700', textAlign: 'center' },
+  leftContainer: { width: 52, alignItems: 'center', justifyContent: 'center' },
+  rightContainer: { width: 44, alignItems: 'center', justifyContent: 'center' },
+  sidePlaceholder: { width: 48, height: 48 },
+  titleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 48, height: 48, borderRadius: 12 },
+  title: { flexShrink: 1, fontSize: FONT_SIZES.lg, fontWeight: '700', textAlign: 'center' },
 });

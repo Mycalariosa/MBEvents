@@ -4,6 +4,33 @@ import { calculatePricing } from '@/src/utils/pricing';
 import { PLANNER_PROGRESS_STEPS } from '@/src/constants';
 import type { Package } from '@/src/types/database';
 
+export function buildBookingQrPayload(bookingId: string) {
+  return `MBEVENT-BOOKING:${bookingId}`;
+}
+
+export function parseBookingQrPayload(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('MBEVENT-BOOKING:')) {
+    return trimmed.replace('MBEVENT-BOOKING:', '').trim();
+  }
+
+  if (trimmed.startsWith('BOOKING:')) {
+    return trimmed.replace('BOOKING:', '').trim();
+  }
+
+  if (trimmed.startsWith('BK:')) {
+    return trimmed.replace('BK:', '').trim();
+  }
+
+  if (trimmed.startsWith('APT-')) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 export async function createEventBooking(params: {
   customerId: string;
   eventTypeId: string;
@@ -262,34 +289,50 @@ export async function updateProgressStep(stepId: string, completed: boolean) {
 }
 
 export async function getBookingDetail(bookingId: string) {
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
-    .select('*, packages(*), event_types(*), profiles(full_name, email, phone)')
+    .select('*, packages(*), event_types(*)')
     .eq('id', bookingId)
-    .single();
+    .maybeSingle();
 
-  const { data: selections } = await supabase
+  let bookingWithProfile = booking as (Booking & { profiles?: { full_name: string; email: string; phone: string } }) | null;
+
+  if (bookingWithProfile?.customer_id) {
+    const { data: customerProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email, phone')
+      .eq('id', bookingWithProfile.customer_id)
+      .maybeSingle();
+
+    bookingWithProfile = {
+      ...(bookingWithProfile ?? {}),
+      profiles: customerProfile ?? null,
+    };
+  }
+
+  const { data: selections, error: selectionsError } = await supabase
     .from('booking_selections')
     .select('*')
     .eq('booking_id', bookingId);
 
-  const { data: progress } = await supabase
+  const { data: progress, error: progressError } = await supabase
     .from('booking_progress')
     .select('*')
     .eq('booking_id', bookingId)
     .order('sort_order');
 
-  const { data: appointment } = await supabase
+  const { data: appointment, error: appointmentError } = await supabase
     .from('consultation_appointments')
     .select('*, profiles:planner_id(full_name)')
     .eq('booking_id', bookingId)
     .maybeSingle();
 
   return {
-    booking,
+    booking: bookingWithProfile ?? null,
     selections: selections ?? [],
     progress: progress ?? [],
     appointment: appointment ?? null,
+    error: bookingError ?? selectionsError ?? progressError ?? appointmentError ?? null,
   };
 }
 

@@ -1,4 +1,4 @@
-import { EmptyState, ScreenContainer } from '@/src/components';
+import { EmptyState, Header, ScreenContainer } from '@/src/components';
 import { FONT_SIZES, SPACING } from '@/src/constants';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useNotifications } from '@/src/hooks/useNotifications';
@@ -8,7 +8,7 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 
 export default function NotificationsScreen() {
   const { profile } = useAuth();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { notifications, markAsRead, markAllRead } = useNotifications(profile?.id);
 
   const getIcon = (type: string): keyof typeof MaterialCommunityIcons.glyphMap => {
@@ -23,6 +23,7 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenContainer scroll={false}>
+      <Header title="MBEvents" showBack={false} showLogo />
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
         {notifications.some((n) => !n.is_read) && (
@@ -44,12 +45,17 @@ export default function NotificationsScreen() {
                 styles.notifCard,
                 {
                   backgroundColor: item.is_read ? colors.card : colors.primary + '10',
-                  borderColor: colors.border,
+                  borderColor: colors.accent,
+                  borderLeftWidth: 4,
                 },
               ]}
               onPress={() => void markAsRead(item.id)}
             >
-              <MaterialCommunityIcons name={getIcon(item.type)} size={24} color={colors.primary} />
+              <MaterialCommunityIcons
+                name={getIcon(item.type)}
+                size={24}
+                color={isDark ? colors.accent : colors.primary}
+              />
               <View style={styles.notifContent}>
                 <Text style={[styles.notifTitle, { color: colors.text }]}>{item.title}</Text>
                 <Text style={[styles.notifBody, { color: colors.textSecondary }]}>{item.body}</Text>

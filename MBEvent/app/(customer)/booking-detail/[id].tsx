@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 import { ScreenContainer, Header, ProgressTimeline, Button } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
-import { getBookingDetail } from '@/src/services/booking';
+import { buildBookingQrPayload, getBookingDetail } from '@/src/services/booking';
 import { getBookingReview } from '@/src/services/appointments';
 import { useBookingProgress } from '@/src/hooks/useNotifications';
 import { formatCurrency, formatDate, formatTime } from '@/src/utils/pricing';
@@ -12,7 +13,7 @@ import type { Booking, BookingSelection, ConsultationAppointment } from '@/src/t
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const router = useRouter();
   const progress = useBookingProgress(id);
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -44,6 +45,8 @@ export default function BookingDetailScreen() {
     booking.status === 'approved' &&
     appointment?.consultation_status === 'finished' &&
     !booking.payment_ref;
+  const showQr = booking.status === 'approved' && !!appointment;
+  const qrValue = buildBookingQrPayload(booking.id);
 
   return (
     <ScreenContainer>
@@ -62,7 +65,7 @@ export default function BookingDetailScreen() {
             {booking.event_address}
           </Text>
         )}
-        <Text style={[styles.total, { color: colors.primary }]}>{formatCurrency(Number(booking.total))}</Text>
+        <Text style={[styles.total, { color: isDark ? '#FFF' : colors.primary }]}>{formatCurrency(Number(booking.total))}</Text>
         {booking.status === 'confirmed' && (
           <Text style={[styles.fee, { color: colors.textSecondary }]}>
             Reservation: {formatCurrency(Number(booking.reservation_fee))} · Balance: {formatCurrency(Number(booking.remaining_balance))}
@@ -77,51 +80,46 @@ export default function BookingDetailScreen() {
         </View>
       )}
 
+      {showQr && (
+        <View style={[styles.qrCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+          <Text style={[styles.qrTitle, { color: colors.text }]}>Booking QR</Text>
+          <Text style={[styles.qrHint, { color: colors.textSecondary }]}>Show this single QR to the admin for verification.</Text>
+          <View style={styles.qrContainer}>
+            <QRCode value={qrValue} size={220} backgroundColor="#FFF" color={colors.primary} />
+          </View>
+        </View>
+      )}
+
       {appointment && (
         <>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Consultation Appointment</Text>
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>{appointment.appointment_ref}</Text>
-            <Text style={{ color: colors.text, marginTop: SPACING.xs }}>
-              {formatDate(appointment.consultation_date)} · {formatTime(appointment.consultation_time)}
-            </Text>
-            {consultStatus && (
-              <View style={[styles.statusBadge, { backgroundColor: consultStatus.color + '20', marginTop: SPACING.sm }]}>
-                <Text style={{ color: consultStatus.color, fontWeight: '600' }}>{consultStatus.label}</Text>
+          <View style={[styles.consultCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <View style={styles.consultHeader}>
+              <Text style={{ color: colors.primary, fontWeight: '700', fontSize: FONT_SIZES.md }}>{appointment.appointment_ref}</Text>
+              {consultStatus && (
+                <View style={[styles.statusBadge, { backgroundColor: consultStatus.color + '20' }]}> 
+                  <Text style={{ color: consultStatus.color, fontWeight: '600' }}>{consultStatus.label}</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.consultRow}>
+              <Text style={[styles.consultLabel, { color: colors.textSecondary }]}>Date</Text>
+              <Text style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{formatDate(appointment.consultation_date)}</Text>
+            </View>
+            <View style={styles.consultRow}>
+              <Text style={[styles.consultLabel, { color: colors.textSecondary }]}>Time</Text>
+              <Text style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{formatTime(appointment.consultation_time)}</Text>
+            </View>
+            {appointment.branch_location && (
+              <View style={styles.consultRow}>
+                <Text style={[styles.consultLabel, { color: colors.textSecondary }]}>Location</Text>
+                <Text style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{appointment.branch_location}</Text>
               </View>
             )}
-            {appointment.consultation_status === 'finished' ? (
-              <Button
-                title="View Appointment Pass"
-                variant="outline"
-                onPress={() => router.push(`/(customer)/appointment-pass/${id}` as never)}
-              />
-            ) : appointment ? (
-              <Button
-                title="View Appointment Pass & QR Code"
-                variant="outline"
-                onPress={() => router.push(`/(customer)/appointment-pass/${id}` as never)}
-              />
-            ) : (
-              <Button
-                title="Appointment Not Scheduled"
-                variant="outline"
-                disabled
-              />
-            )}
+            <Text style={{ color: colors.textSecondary, marginTop: SPACING.sm }}>
+              Your consultation is scheduled and the booking QR above is ready for admin scanning.
+            </Text>
           </View>
-        </>
-      )}
-
-      {selections.length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Selected Choices</Text>
-          {selections.map((s) => (
-            <View key={s.id} style={[styles.selectionRow, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.selectionLabel, { color: colors.textSecondary }]}>{s.service_type}</Text>
-              <Text style={{ color: colors.text, flex: 1, textAlign: 'right' }}>{s.item_name}</Text>
-            </View>
-          ))}
         </>
       )}
 
@@ -167,6 +165,12 @@ const styles = StyleSheet.create({
   fee: { fontSize: FONT_SIZES.sm, marginTop: SPACING.xs },
   alertBox: { borderRadius: 12, borderWidth: 1, padding: SPACING.md, marginBottom: SPACING.lg },
   sectionTitle: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: SPACING.md, marginTop: SPACING.md },
-  selectionRow: { flexDirection: 'row', paddingVertical: SPACING.sm, borderBottomWidth: 1 },
-  selectionLabel: { textTransform: 'capitalize', width: 120 },
+  consultCard: { borderRadius: 16, borderWidth: 1, padding: SPACING.lg, marginBottom: SPACING.lg },
+  consultHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
+  consultRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm },
+  consultLabel: { width: 80, fontWeight: '600' },
+  qrCard: { borderRadius: 16, borderWidth: 1, padding: SPACING.lg, marginBottom: SPACING.lg, alignItems: 'center' },
+  qrTitle: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: SPACING.xs },
+  qrHint: { fontSize: FONT_SIZES.sm, textAlign: 'center', marginBottom: SPACING.md },
+  qrContainer: { alignItems: 'center', padding: SPACING.md, backgroundColor: '#FFF', borderRadius: 12 },
 });

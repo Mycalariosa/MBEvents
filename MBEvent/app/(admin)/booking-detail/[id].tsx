@@ -162,7 +162,7 @@ export default function AdminBookingDetailScreen() {
 
       <View style={styles.actions}>
         {booking.status === 'approved' && !appointment && (
-          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={() => router.push(`/(admin)/schedule-consultation/${booking.id}` as never)}>
+          <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={() => router.push({ pathname: '/(admin)/schedule-consultation/[id]' as never, params: { id: booking.id } } as never)}>
             <Text style={styles.btnText}>Schedule Consultation</Text>
           </TouchableOpacity>
         )}
