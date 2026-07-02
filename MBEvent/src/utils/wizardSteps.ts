@@ -16,11 +16,22 @@ export function getActiveWizardSteps(
   inclusions: Pick<PackageInclusion, 'service_type' | 'included'>[]
 ): WizardStep[] {
   const allSteps = getWizardStepsForEventType(eventType);
+
+  if (!inclusions.length) {
+    return allSteps;
+  }
+
   const includedKeys = new Set(
     inclusions.filter((i) => i.included).map((i) => i.service_type)
   );
 
-  return allSteps.filter((step) => step.key === 'review' || includedKeys.has(step.key));
+  const hasIncludedSteps = includedKeys.size > 0;
+  if (!hasIncludedSteps) {
+    return allSteps;
+  }
+
+  const filteredSteps = allSteps.filter((step) => step.key === 'review' || includedKeys.has(step.key));
+  return filteredSteps.length > 0 ? filteredSteps : allSteps;
 }
 
 export function getInclusionLabels(

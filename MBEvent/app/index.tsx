@@ -36,28 +36,24 @@ export default function SplashScreen() {
   useEffect(() => {
     if (loading || !minTimeElapsed || navigated.current) return;
 
-    const navigateUnauthenticated = () => {
+    if (!session) {
       navigated.current = true;
       goToOnboarding();
-    };
+      return;
+    }
 
-    const navigate = async () => {
-      if (session) {
-        if (!profile) return;
+    if (!profile) return;
 
-        navigated.current = true;
-        if (profile.role === 'admin') {
-          router.replace('/(admin)/(tabs)/dashboard' as never);
-        } else {
-          router.replace('/(customer)/(tabs)/home' as never);
-        }
-        return;
+    navigated.current = true;
+    const timeout = setTimeout(() => {
+      if (profile.role === 'admin') {
+        router.replace('/(admin)/(tabs)/dashboard' as never);
+      } else {
+        router.replace('/(customer)/(tabs)/home' as never);
       }
+    }, 0);
 
-      navigateUnauthenticated();
-    };
-
-    navigate();
+    return () => clearTimeout(timeout);
   }, [loading, minTimeElapsed, session, profile, router]);
 
   // Session exists but profile never loads — clear stale auth and show onboarding

@@ -21,7 +21,12 @@ export default function BookingsScreen() {
   };
 
   useEffect(() => {
-    loadBookings();
+    void loadBookings();
+    const intervalId = setInterval(() => {
+      void loadBookings();
+    }, 10000);
+
+    return () => clearInterval(intervalId);
   }, [profile, filter]);
 
   const handleCancel = (id: string) => {
@@ -31,8 +36,14 @@ export default function BookingsScreen() {
         text: 'Yes, Cancel',
         style: 'destructive',
         onPress: async () => {
-          await cancelBooking(id);
-          loadBookings();
+          const { error } = await cancelBooking(id);
+          if (error) {
+            Alert.alert('Cancellation failed', error.message || 'Please try again.');
+            return;
+          }
+
+          await loadBookings();
+          Alert.alert('Booking cancelled', 'Your booking has been cancelled successfully.');
         },
       },
     ]);

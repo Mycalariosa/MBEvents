@@ -26,7 +26,7 @@ interface AuthContextType {
     otp: string,
     password: string
   ) => Promise<{ error: string | null }>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -444,7 +444,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         verifyOTP,
         resetPasswordWithOtp,
         refreshProfile: async () => {
-          if (session?.user) await fetchProfile(session.user.id);
+          const { data } = await supabase.auth.getSession();
+          const userId = data.session?.user?.id ?? session?.user?.id;
+          if (!userId) return null;
+          return fetchProfile(userId);
         },
       }}
     >

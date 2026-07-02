@@ -30,7 +30,7 @@ export default function CategoriesScreen() {
               <MaterialCommunityIcons
                 name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
                 size={28}
-                color={item.color}
+                color={isDark ? item.color : colors.primary}
               />
             </View>
             <View style={styles.cardContent}>

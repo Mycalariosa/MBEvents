@@ -15,6 +15,13 @@ export function BookingCard({ booking, showActions = true, onCancel }: BookingCa
   const { colors, isDark } = useTheme();
   const router = useRouter();
   const statusInfo = BOOKING_STATUSES.find((s) => s.id === booking.status);
+  const showBalance = booking.status === 'confirmed' || Boolean(booking.payment_ref);
+  const expectedRemainingBalance = Math.max(0, Number(booking.total) - Number(booking.reservation_fee));
+  const displayRemainingBalance = booking.payment_ref
+    ? booking.status === 'completed'
+      ? Number(booking.remaining_balance)
+      : expectedRemainingBalance
+    : Number(booking.remaining_balance);
 
   return (
     <TouchableOpacity
@@ -26,19 +33,27 @@ export function BookingCard({ booking, showActions = true, onCancel }: BookingCa
           {booking.event_types?.name ?? 'Event'}
         </Text>
         <View style={[styles.statusBadge, { backgroundColor: (statusInfo?.color ?? colors.primary) + '20' }]}> 
-          <Text style={[styles.statusText, { color: statusInfo?.color ?? colors.primary }]}>
+          <Text style={[styles.statusText, { color: statusInfo?.color ?? colors.primary }]}> 
             {statusInfo?.label ?? booking.status}
           </Text>
         </View>
       </View>
-      <Text style={[styles.package, { color: colors.textSecondary }]}>
+      <Text style={[styles.package, { color: colors.textSecondary }]}> 
         {booking.packages?.name ?? 'Custom Package'}
       </Text>
-      <Text style={[styles.date, { color: colors.textSecondary }]}>
+      <Text style={[styles.date, { color: colors.textSecondary }]}> 
         {formatDate(booking.event_date)} · {formatTime(booking.event_time)}
       </Text>
-      <Text style={[styles.amount, { color: isDark ? '#FFF' : colors.primary }]}>
+      <Text style={[styles.amount, { color: isDark ? '#FFF' : colors.primary }]}> 
         {formatCurrency(Number(booking.total))}
+      </Text>
+      {showBalance && (
+        <Text style={[styles.balance, { color: colors.textSecondary }]}> 
+          Remaining Balance: {formatCurrency(displayRemainingBalance)}
+        </Text>
+      )}
+      <Text style={[styles.meta, { color: colors.textSecondary }]}> 
+        Current Status: {statusInfo?.label ?? booking.status}
       </Text>
       {showActions && booking.status === 'pending' && onCancel && (
         <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.error }]} onPress={onCancel}>
@@ -68,5 +83,7 @@ const styles = StyleSheet.create({
   package: { fontSize: FONT_SIZES.sm, marginTop: SPACING.xs },
   date: { fontSize: FONT_SIZES.sm, marginTop: 2 },
   amount: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginTop: SPACING.sm, color: '#D4AF37' },
+  balance: { fontSize: FONT_SIZES.sm, marginTop: SPACING.xs },
+  meta: { fontSize: FONT_SIZES.sm, marginTop: 2 },
   cancelBtn: { marginTop: SPACING.sm, borderWidth: 1, borderRadius: 8, paddingVertical: SPACING.sm, alignItems: 'center' },
 });

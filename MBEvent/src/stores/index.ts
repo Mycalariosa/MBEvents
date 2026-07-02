@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Package, PackageInclusion, WizardSelection } from '@/src/types/database';
+import type { Package, PackageInclusion, WizardSelection, Notification } from '@/src/types/database';
 
 interface ThemeState {
   isDark: boolean;
@@ -143,6 +143,35 @@ export const useGenericBookingStore = create<GenericBookingState>((set) => ({
       eventTime: null,
       additionalRequests: '',
     }),
+}));
+
+interface NotificationState {
+  notifications: Notification[];
+  unreadCount: number;
+  setNotifications: (notifications: Notification[]) => void;
+  setUnreadCount: (count: number) => void;
+  updateNotification: (id: string, patch: Partial<Notification>) => void;
+  markAllReadLocal: () => void;
+}
+
+export const useNotificationStore = create<NotificationState>((set) => ({
+  notifications: [],
+  unreadCount: 0,
+  setNotifications: (notifications) =>
+    set({ notifications, unreadCount: notifications.filter((n) => !n.is_read).length }),
+  setUnreadCount: (count) => set({ unreadCount: count }),
+  updateNotification: (id, patch) =>
+    set((state) => {
+      const notifications = state.notifications.map((n) =>
+        n.id === id ? { ...n, ...patch } : n
+      );
+      return { notifications, unreadCount: notifications.filter((n) => !n.is_read).length };
+    }),
+  markAllReadLocal: () =>
+    set((state) => ({
+      notifications: state.notifications.map((n) => ({ ...n, is_read: true })),
+      unreadCount: 0,
+    })),
 }));
 
 interface AdminViewState {

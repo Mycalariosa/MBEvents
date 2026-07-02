@@ -24,7 +24,7 @@ export function CategoryGrid() {
             <MaterialCommunityIcons
               name={item.icon as keyof typeof MaterialCommunityIcons.glyphMap}
               size={24}
-              color={isDark ? item.color : colors.primaryDark}
+              color={isDark ? item.color : colors.primary}
             />
           </View>
           <Text style={[styles.label, { color: colors.text }]} numberOfLines={1}>

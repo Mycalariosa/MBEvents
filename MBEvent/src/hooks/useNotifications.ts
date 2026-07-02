@@ -1,10 +1,15 @@
 import { supabase } from '@/src/lib/supabase';
-import type { Notification } from '@/src/types/database';
+import type { Notification as AppNotification } from '@/src/types/database';
 import { useEffect, useState } from 'react';
+import { useNotificationStore } from '@/src/stores';
 
 export function useNotifications(userId: string | undefined) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const notifications = useNotificationStore((state) => state.notifications);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const setNotifications = useNotificationStore((state) => state.setNotifications);
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount);
+  const updateNotification = useNotificationStore((state) => state.updateNotification);
+  const markAllReadLocal = useNotificationStore((state) => state.markAllReadLocal);
   const [loading, setLoading] = useState(true);
 
   const fetchNotifications = async () => {
@@ -24,7 +29,7 @@ export function useNotifications(userId: string | undefined) {
 
       if (error) throw error;
 
-      const parsed = (data ?? []) as Notification[];
+      const parsed = (data ?? []) as AppNotification[];
       setNotifications(parsed);
       setUnreadCount(parsed.filter((n) => !n.is_read).length);
     } catch {
@@ -46,8 +51,7 @@ export function useNotifications(userId: string | undefined) {
       const { error } = await supabase.from('notifications').update({ is_read: true }).eq('id', id);
       if (error) throw error;
 
-      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-      setUnreadCount((c) => Math.max(0, c - 1));
+      updateNotification(id, { is_read: true } as Partial<AppNotification>);
     } catch {
       // Ignore update failures so the screen remains usable.
     }
@@ -60,8 +64,7 @@ export function useNotifications(userId: string | undefined) {
       const { error } = await supabase.from('notifications').update({ is_read: true }).eq('user_id', userId);
       if (error) throw error;
 
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-      setUnreadCount(0);
+      markAllReadLocal();
     } catch {
       // Ignore update failures so the screen remains usable.
     }
@@ -74,30 +77,39 @@ export function useBookingProgress(bookingId: string | undefined) {
   const [progress, setProgress] = useState<import('@/src/types/database').BookingProgress[]>([]);
 
   useEffect(() => {
-    if (!bookingId) return;
+    if (!bookingId) {
+      setProgress([]);
+      return;
+    }
+
+    let isActive = true;
 
     const fetchProgress = async () => {
-      const { data } = await supabase
-        .from('booking_progress')
-        .select('*')
-        .eq('booking_id', bookingId)
-        .order('sort_order');
-      if (data) setProgress(data);
+      try {
+        const { data } = await supabase
+          .from('booking_progress')
+          .select('*')
+          .eq('booking_id', bookingId)
+          .order('sort_order');
+
+        if (isActive && data) {
+          setProgress(data);
+        }
+      } catch {
+        if (isActive) {
+          setProgress([]);
+        }
+      }
     };
 
-    fetchProgress();
-
-    const channel = supabase
-      .channel(`progress-${bookingId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'booking_progress', filter: `booking_id=eq.${bookingId}` },
-        () => fetchProgress()
-      )
-      .subscribe();
+    void fetchProgress();
+    const intervalId = setInterval(() => {
+      void fetchProgress();
+    }, 15000);
 
     return () => {
-      supabase.removeChannel(channel);
+      isActive = false;
+      clearInterval(intervalId);
     };
   }, [bookingId]);
 

@@ -30,13 +30,50 @@ export default function PaymentScreen() {
   if (!booking || !profile) return null;
 
   const reservationFee = Number(booking.reservation_fee);
+  const rawRemainingBalance = Number(booking.remaining_balance);
+  const paidReservation = Boolean(booking.payment_ref);
+  const expectedRemainingBalance = Math.max(0, Number(booking.total) - reservationFee);
+  const remainingBalance = paidReservation
+    ? booking.status === 'completed'
+      ? rawRemainingBalance
+      : expectedRemainingBalance
+    : rawRemainingBalance;
+  const isReservationPayment = !paidReservation;
+  const isRemainingBalancePayment = paidReservation && booking.status === 'completed' && remainingBalance > 0;
+  const paymentAmount = isReservationPayment ? reservationFee : remainingBalance;
+  const screenTitle = isRemainingBalancePayment ? 'Outstanding Balance' : isReservationPayment ? 'Reservation Fee' : 'Remaining Balance Not Due';
+  const paymentDescription = isRemainingBalancePayment
+    ? 'Please complete your remaining balance to finalize your booking.'
+    : isReservationPayment
+    ? 'After your consultation, pay the reservation fee to confirm your booking.'
+    : 'Your remaining balance is due only after the event is completed.';
+  const buttonText = isRemainingBalancePayment
+    ? `Pay Remaining Balance ${formatCurrency(paymentAmount)}`
+    : isReservationPayment
+    ? `Pay ${formatCurrency(paymentAmount)}`
+    : 'Payment Not Available';
+  const displayBalance = remainingBalance;
+  const canPay = isReservationPayment || isRemainingBalancePayment;
 
   const handlePay = async () => {
+    if (!canPay) {
+      Alert.alert(
+        'Payment Not Available',
+        'Your reservation is already paid. Remaining balance is payable only after event completion.'
+      );
+      return;
+    }
+
+    if (paidReservation && remainingBalance <= 0) {
+      Alert.alert('Nothing to Pay', 'Your booking is already fully settled.');
+      return;
+    }
+
     setLoading(true);
 
     const { referenceNumber, error: payError } = await processPayment({
       bookingId: booking.id,
-      amount: reservationFee,
+      amount: paymentAmount,
       method,
     });
 
@@ -47,29 +84,46 @@ export default function PaymentScreen() {
       return;
     }
 
-    await notifyPaymentSuccess(profile.id, reservationFee, referenceNumber ?? '');
-    Alert.alert(
-      'Booking Confirmed',
-      'Your reservation fee has been paid. Your booking is now confirmed!',
-      [{ text: 'OK', onPress: () => router.replace(`/(customer)/booking-detail/${booking.id}` as never) }]
-    );
+    const updatedBooking = {
+      ...booking,
+      payment_ref: booking.payment_ref ?? referenceNumber,
+      remaining_balance: isRemainingBalancePayment ? 0 : remainingBalance,
+      status: booking.payment_ref ? booking.status : 'confirmed' as const,
+    };
+    setBooking(updatedBooking);
+
+    await notifyPaymentSuccess(profile.id, paymentAmount, referenceNumber ?? '');
+    if (isRemainingBalancePayment) {
+      Alert.alert(
+        'Thank you for booking with us',
+        'Your remaining balance is now settled. Would you like to rate your experience?',
+        [
+          { text: 'View Booking', onPress: () => router.replace(`/(customer)/booking-detail/${booking.id}` as never) },
+          { text: 'Rate Experience', onPress: () => router.replace(`/(customer)/rate-booking/${booking.id}` as never) },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Booking Confirmed',
+        'Your reservation fee has been paid. Your booking is now confirmed!',
+        [{ text: 'OK', onPress: () => router.replace(`/(customer)/booking-detail/${booking.id}` as never) }]
+      );
+    }
   };
 
   return (
     <ScreenContainer>
-      <Header title="Reservation Fee" />
-      <Text style={[styles.desc, { color: colors.textSecondary }]}>
-        After your consultation, pay the reservation fee to confirm your booking.
+      <Header title={screenTitle} />
+      <Text style={[styles.desc, { color: colors.textSecondary }]}> 
+        {paymentDescription}
       </Text>
-      <View style={[styles.summary, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Reservation Fee (30%)</Text>
-        <Text style={[styles.amount, { color: colors.primary }]}>{formatCurrency(reservationFee)}</Text>
+      <View style={[styles.summary, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{screenTitle}</Text>
+        <Text style={[styles.amount, { color: colors.primary }]}>{formatCurrency(paymentAmount)}</Text>
         <Text style={[styles.total, { color: colors.textSecondary }]}>Total Package: {formatCurrency(Number(booking.total))}</Text>
-        <Text style={[styles.balance, { color: colors.textSecondary }]}>
-          Remaining Balance: {formatCurrency(Number(booking.remaining_balance))}
-        </Text>
+        <Text style={[styles.balance, { color: colors.textSecondary }]}> 
+          Remaining Balance: {formatCurrency(displayBalance)}        </Text>
       </View>
-
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
       {PAYMENT_METHODS.map((pm) => (
         <TouchableOpacity
@@ -83,7 +137,7 @@ export default function PaymentScreen() {
         </TouchableOpacity>
       ))}
 
-      <Button title={`Pay ${formatCurrency(reservationFee)}`} onPress={handlePay} loading={loading} />
+      <Button title={buttonText} onPress={handlePay} loading={loading} disabled={!canPay || loading} />
     </ScreenContainer>
   );
 }

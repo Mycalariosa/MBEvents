@@ -200,6 +200,7 @@ export interface Database {
       bookings: { Row: Booking; Insert: Partial<Booking>; Update: Partial<Booking> };
       notifications: { Row: Notification; Insert: Partial<Notification>; Update: Partial<Notification> };
       favorites: { Row: Favorite; Insert: Partial<Favorite>; Update: Partial<Favorite> };
+      payments: { Row: Payment; Insert: Partial<Payment>; Update: Partial<Payment> };
     };
   };
 }

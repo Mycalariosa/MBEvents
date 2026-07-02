@@ -1,12 +1,15 @@
-import { BookingCard, CategoryGrid, Header, ScreenContainer, SearchBar } from '@/src/components';
+import { BookingCard, CategoryGrid, EmptyState, Header, ScreenContainer, SearchBar, ServiceCard } from '@/src/components';
 import { FONT_SIZES, SPACING } from '@/src/constants';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useTheme } from '@/src/hooks/useTheme';
+import { supabase } from '@/src/lib/supabase';
 import { getBookings } from '@/src/services/booking';
-import type { Booking } from '@/src/types/database';
+import type { Booking, ServiceItem } from '@/src/types/database';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+const SEARCH_TABLES = ['venues', 'photographers', 'makeup_artists', 'catering_options', 'cakes'];
 
 const planningOptions = [
   {
@@ -37,12 +40,50 @@ export default function HomeScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+  const [searchResults, setSearchResults] = useState<(ServiceItem & { table: string })[]>([]);
 
   useEffect(() => {
     if (profile) {
       getBookings(profile.id, 'customer').then(({ data }) => setRecentBookings((data ?? []).slice(0, 2) as Booking[]));
     }
   }, [profile]);
+
+  useEffect(() => {
+    const trimmedQuery = search.trim();
+    if (trimmedQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    const searchSuppliers = async () => {
+      const allResults: (ServiceItem & { table: string })[] = [];
+
+      for (const table of SEARCH_TABLES) {
+        const { data } = await supabase.from(table).select('*').ilike('name', `%${trimmedQuery}%`).limit(5);
+
+        if (data) {
+          allResults.push(
+            ...data.map((item: Record<string, unknown>) => ({
+              id: item.id as string,
+              name: item.name as string,
+              price: Number(item.price ?? 0),
+              location: item.location as string,
+              rating: item.rating as number,
+              images: (item.images as string[]) ?? [],
+              table,
+            }))
+          );
+        }
+      }
+
+      setSearchResults(allResults);
+    };
+
+    const debounce = setTimeout(searchSuppliers, 300);
+    return () => clearTimeout(debounce);
+  }, [search]);
+
+  const hasActiveSearch = search.trim().length >= 2;
 
   return (
     <ScreenContainer>
@@ -54,61 +95,75 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <SearchBar
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Search suppliers, categories..."
-        onFilter={() => router.push('/(customer)/search' as never)}
-      />
+      <SearchBar value={search} onChangeText={setSearch} placeholder="Search suppliers, categories..." />
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
-      <CategoryGrid />
-
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Start Your Celebration</Text>
-      <View style={styles.planningGrid}>
-        {planningOptions.map((option) => (
-          <TouchableOpacity
-            key={option.slug}
-            style={[styles.planningCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={() =>
-              router.push(
-                (
-                  option.slug === 'wedding'
-                    ? `/(customer)/booking/${option.slug}/package`
-                    : `/(customer)/category/${option.slug}`
-                ) as never
-              )
-            }
-          >
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{option.title}</Text>
-            <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{option.description}</Text>
-            <View style={styles.tierRow}>
-              {option.tiers.map((tier) => (
-                <View
-                  key={tier.label}
-                  style={[
-                    styles.tierBadge,
-                    {
-                      backgroundColor: tier.label === 'Gold' ? colors.primary : colors.surface,
-                      borderColor: tier.label === 'Gold' ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.tierLabel, { color: tier.label === 'Gold' ? '#FFF' : colors.text }]}>{tier.label}</Text>
-                  <Text style={[styles.tierPrice, { color: tier.label === 'Gold' ? '#FFF' : isDark ? '#FFF' : colors.primaryDark }]}>{tier.price}</Text>
-                </View>
-              ))}
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {recentBookings.length > 0 && (
+      {hasActiveSearch ? (
+        <View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Search Results</Text>
+          {searchResults.length > 0 ? (
+            searchResults.map((item) => (
+              <ServiceCard
+                key={`${item.table}-${item.id}`}
+                item={item}
+                onPress={() => router.push(`/(customer)/supplier/${item.id}?type=${item.table}` as never)}
+              />
+            ))
+          ) : (
+            <EmptyState icon="magnify-close" title="No results" message="Try a different search term" />
+          )}
+        </View>
+      ) : (
         <>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Bookings</Text>
-          {recentBookings.map((b) => (
-            <BookingCard key={b.id} booking={b as Booking & { packages?: { name: string }; event_types?: { name: string } }} showActions={false} />
-          ))}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
+          <CategoryGrid />
+
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Start Your Celebration</Text>
+          <View style={styles.planningGrid}>
+            {planningOptions.map((option) => (
+              <TouchableOpacity
+                key={option.slug}
+                style={[styles.planningCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() =>
+                  router.push(
+                    (
+                      option.slug === 'wedding'
+                        ? `/(customer)/booking/${option.slug}/package`
+                        : `/(customer)/category/${option.slug}`
+                    ) as never
+                  )
+                }
+              >
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{option.title}</Text>
+                <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>{option.description}</Text>
+                <View style={styles.tierRow}>
+                  {option.tiers.map((tier) => (
+                    <View
+                      key={tier.label}
+                      style={[
+                        styles.tierBadge,
+                        {
+                          backgroundColor: tier.label === 'Gold' ? colors.primary : colors.surface,
+                          borderColor: tier.label === 'Gold' ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.tierLabel, { color: tier.label === 'Gold' ? '#FFF' : colors.text }]}>{tier.label}</Text>
+                      <Text style={[styles.tierPrice, { color: tier.label === 'Gold' ? '#FFF' : isDark ? '#FFF' : colors.primaryDark }]}>{tier.price}</Text>
+                    </View>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {recentBookings.length > 0 && (
+            <>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Bookings</Text>
+              {recentBookings.map((b) => (
+                <BookingCard key={b.id} booking={b as Booking & { packages?: { name: string }; event_types?: { name: string } }} showActions={false} />
+              ))}
+            </>
+          )}
         </>
       )}
     </ScreenContainer>
@@ -116,7 +171,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topBar: { marginBottom: SPACING.md },
+  topBar: { marginTop: SPACING.sm, marginBottom: SPACING.sm },
   greeting: { fontSize: FONT_SIZES.sm },
   name: { fontSize: FONT_SIZES.xl, fontWeight: '700' },
   sectionTitle: { fontSize: FONT_SIZES.lg, fontWeight: '700', marginBottom: SPACING.md, marginTop: SPACING.md },

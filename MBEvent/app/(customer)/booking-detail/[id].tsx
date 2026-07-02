@@ -40,12 +40,32 @@ export default function BookingDetailScreen() {
     ? CONSULTATION_STATUSES.find((s) => s.id === appointment.consultation_status)
     : null;
   const b = booking as Booking & { packages?: { name: string }; event_types?: { name: string } };
+  const expectedRemainingBalance = Math.max(0, Number(booking.total) - Number(booking.reservation_fee));
+  const effectiveRemainingBalance = booking.payment_ref
+    ? booking.status === 'completed'
+      ? Number(booking.remaining_balance)
+      : expectedRemainingBalance
+    : Number(booking.remaining_balance);
+  const displayRemainingBalance = effectiveRemainingBalance;
 
-  const canPay =
+  const canPayReservation =
     booking.status === 'approved' &&
     appointment?.consultation_status === 'finished' &&
     !booking.payment_ref;
+  const canPayRemainingBalance =
+    booking.status === 'completed' &&
+    Boolean(booking.payment_ref) &&
+    effectiveRemainingBalance > 0;
   const showQr = booking.status === 'approved' && !!appointment;
+  const canRate =
+    booking.status === 'completed' &&
+    !hasReview &&
+    booking.payment_ref &&
+    effectiveRemainingBalance <= 0;
+  const showRateBlocked =
+    booking.status === 'completed' &&
+    !hasReview &&
+    effectiveRemainingBalance > 0;
   const qrValue = buildBookingQrPayload(booking.id);
 
   return (
@@ -68,7 +88,7 @@ export default function BookingDetailScreen() {
         <Text style={[styles.total, { color: isDark ? '#FFF' : colors.primary }]}>{formatCurrency(Number(booking.total))}</Text>
         {booking.status === 'confirmed' && (
           <Text style={[styles.fee, { color: colors.textSecondary }]}>
-            Reservation: {formatCurrency(Number(booking.reservation_fee))} · Balance: {formatCurrency(Number(booking.remaining_balance))}
+            Reservation: {formatCurrency(Number(booking.reservation_fee))} · Balance: {formatCurrency(displayRemainingBalance)}
           </Text>
         )}
       </View>
@@ -132,11 +152,31 @@ export default function BookingDetailScreen() {
         </>
       )}
 
-      {canPay && (
+      {canPayReservation && (
         <Button
           title="Pay Reservation Fee"
           onPress={() => router.push(`/(customer)/booking/payment?bookingId=${id}` as never)}
         />
+      )}
+
+      {canPayRemainingBalance && (
+        <Button
+          title={`Pay Remaining Balance ${formatCurrency(effectiveRemainingBalance)}`}
+          onPress={() => router.push(`/(customer)/booking/payment?bookingId=${id}` as never)}
+        />
+      )}
+
+      {booking.payment_ref && effectiveRemainingBalance <= 0 && (
+        <View style={[styles.alertBox, { backgroundColor: colors.success + '15', borderColor: colors.success }]}> 
+          <Text style={{ color: colors.success, fontWeight: '600' }}>
+            {booking.status === 'completed' ? 'Full Payment Received' : 'Reservation Fee Paid'}
+          </Text>
+          <Text style={{ color: colors.textSecondary, marginTop: SPACING.xs }}>
+            {booking.status === 'completed'
+              ? 'Your booking is fully paid and confirmed. Thank you for completing payment.'
+              : 'Your reservation fee has been received. No further payment is needed for this step.'}
+          </Text>
+        </View>
       )}
 
       {progress.length > 0 && booking.status === 'confirmed' && (
@@ -146,11 +186,19 @@ export default function BookingDetailScreen() {
         </>
       )}
 
-      {booking.status === 'completed' && !hasReview && (
+      {canRate && (
         <Button
           title="Rate Your Experience"
           onPress={() => router.push(`/(customer)/rate-booking/${id}` as never)}
         />
+      )}
+      {showRateBlocked && (
+        <View style={[styles.alertBox, { backgroundColor: colors.warning + '15', borderColor: colors.warning }]}> 
+          <Text style={{ color: colors.warning, fontWeight: '600' }}>Full Payment Required</Text>
+          <Text style={{ color: colors.textSecondary, marginTop: SPACING.xs }}>
+            Please settle the remaining balance before rating your experience.
+          </Text>
+        </View>
       )}
     </ScreenContainer>
   );

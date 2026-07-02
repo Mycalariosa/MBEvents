@@ -8,9 +8,17 @@ export default function AdminLayout() {
 
   useEffect(() => {
     if (loading) return;
-    if (!session) router.replace('/(auth)/login' as never);
-    else if (profile?.role !== 'admin') router.replace('/(customer)/(tabs)/home' as never);
-  }, [session, profile, loading]);
+
+    const timeout = setTimeout(() => {
+      if (!session) {
+        router.replace('/(auth)/login' as never);
+      } else if (profile?.role !== 'admin') {
+        router.replace('/(customer)/(tabs)/home' as never);
+      }
+    }, 0);
+
+    return () => clearTimeout(timeout);
+  }, [session, profile, loading, router]);
 
   if (loading || !session || profile?.role !== 'admin') return null;
 

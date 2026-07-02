@@ -1,4 +1,5 @@
 import { supabase } from '@/src/lib/supabase';
+import { presentLocalNotification } from '@/src/services/pushNotifications';
 
 export async function createNotification(params: {
   userId: string;
@@ -7,13 +8,17 @@ export async function createNotification(params: {
   body: string;
   data?: Record<string, unknown>;
 }) {
-  return supabase.from('notifications').insert({
+  const response = await supabase.from('notifications').insert({
     user_id: params.userId,
     type: params.type,
     title: params.title,
     body: params.body,
     data: params.data ?? {},
   });
+
+  void presentLocalNotification(params.title, params.body);
+
+  return response;
 }
 
 export async function notifyBookingApproved(userId: string, bookingId: string) {
@@ -73,6 +78,18 @@ export async function notifyBookingRejected(userId: string, bookingId: string) {
 }
 
 export async function notifyPaymentSuccess(userId: string, amount: number, ref: string) {
+  const { data: existing, error: existingError } = await supabase
+    .from('notifications')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('type', 'payment_success')
+    .eq('data->>ref', ref)
+    .maybeSingle();
+
+  if (!existingError && existing) {
+    return null;
+  }
+
   return createNotification({
     userId,
     type: 'payment_success',

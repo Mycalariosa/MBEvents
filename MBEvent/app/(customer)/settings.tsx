@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { ScreenContainer, Header } from '@/src/components';
 import { useTheme } from '@/src/hooks/useTheme';
 import { useThemeStore } from '@/src/stores';
@@ -7,16 +8,17 @@ import { SPACING, FONT_SIZES } from '@/src/constants';
 export default function SettingsScreen() {
   const { colors } = useTheme();
   const { isDark, toggleTheme } = useThemeStore();
+  const router = useRouter();
 
   const settingsItems = [
     { label: 'Dark Mode', toggle: true, value: isDark, onToggle: toggleTheme },
     { label: 'Light Mode', toggle: true, value: !isDark, onToggle: () => toggleTheme() },
-    { label: 'Notification Settings', action: () => {} },
-    { label: 'Privacy Policy', action: () => Linking.openURL('https://mbevents.app/privacy') },
-    { label: 'Terms and Conditions', action: () => Linking.openURL('https://mbevents.app/terms') },
-    { label: 'Help Center', action: () => Linking.openURL('https://mbevents.app/help') },
-    { label: 'Contact Support', action: () => Linking.openURL('mailto:support@mbevents.app') },
-    { label: 'About MBEvents', action: () => {} },
+    { label: 'Notification Settings', action: () => router.push('/(customer)/notification-settings' as never) },
+    { label: 'Privacy Policy', action: () => router.push('/(customer)/privacy-policy' as never) },
+    { label: 'Terms and Conditions', action: () => router.push('/(customer)/terms-and-conditions' as never) },
+    { label: 'Help Center', action: () => router.push('/(customer)/help-center' as never) },
+    { label: 'Contact Support', action: () => router.push('/(customer)/contact-support' as never) },
+    { label: 'About MBEvents', action: () => router.push('/(customer)/about' as never) },
   ];
 
   return (

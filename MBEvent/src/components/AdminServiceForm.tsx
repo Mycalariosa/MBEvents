@@ -128,6 +128,7 @@ export function AdminServiceForm({
       quality: 0.8,
       allowsMultipleSelection: true,
       selectionLimit: 5,
+      base64: true,
     });
     if (result.canceled || !result.assets.length) return;
 
@@ -136,7 +137,11 @@ export function AdminServiceForm({
     const failures: string[] = [];
 
     for (const asset of result.assets) {
-      const { path, error } = await uploadServiceImage(table, asset.uri);
+      const { path, error } = await uploadServiceImage(table, {
+        uri: asset.uri,
+        base64: asset.base64 ?? undefined,
+        contentType: asset.mimeType ?? undefined,
+      });
       if (path) uploaded.push(path);
       else failures.push(error ?? 'Unknown error');
     }

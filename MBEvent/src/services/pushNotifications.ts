@@ -35,3 +35,18 @@ export async function registerForPushNotifications(): Promise<string | null> {
   const token = (await Notifications.getExpoPushTokenAsync()).data;
   return token;
 }
+
+export async function presentLocalNotification(title: string, body: string) {
+  if (Platform.OS === 'web') return null;
+
+  try {
+    const Notifications = await import('expo-notifications');
+    return await Notifications.presentNotificationAsync({
+      title,
+      body,
+      priority: Notifications.AndroidNotificationPriority.HIGH,
+    });
+  } catch {
+    return null;
+  }
+}

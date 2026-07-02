@@ -141,6 +141,98 @@ export async function confirmBookingAfterPayment(bookingId: string, plannerId?: 
   return { error: null };
 }
 
+export async function applyBookingPayment(bookingId: string, amount: number, paymentRef: string) {
+  const { data: currentBooking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('id, status, total, reservation_fee, payment_ref')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  if (fetchError) return { error: fetchError.message };
+  if (!currentBooking) return { error: 'Booking not found.' };
+
+  if ((currentBooking as { status?: string }).status === 'cancelled') {
+    return { error: 'This booking has been cancelled and cannot receive a payment.' };
+  }
+
+  if ((currentBooking as { payment_ref?: string | null }).payment_ref) {
+    return { error: 'This booking has already been paid.' };
+  }
+
+  const reservationFee = Number((currentBooking as { reservation_fee?: number } | null)?.reservation_fee ?? 0);
+  const normalizedAmount = Number(amount || 0);
+
+  if (normalizedAmount <= 0) {
+    return { error: 'Payment amount must be greater than zero.' };
+  }
+
+  if (normalizedAmount !== reservationFee) {
+    return { error: 'Payment amount must match the reservation fee.' };
+  }
+
+  const total = Number((currentBooking as { total?: number } | null)?.total ?? 0);
+  const updatedBalance = Math.max(0, total - reservationFee);
+
+  const { data: updatedBooking, error: updateError } = await supabase
+    .from('bookings')
+    .update({
+      payment_ref: paymentRef,
+      remaining_balance: updatedBalance,
+    })
+    .eq('id', bookingId)
+    .is('payment_ref', null)
+    .select('id')
+    .maybeSingle();
+
+  if (updateError) return { error: updateError.message };
+  if (!updatedBooking) {
+    return { error: 'This booking is no longer eligible for payment.' };
+  }
+
+  return confirmBookingAfterPayment(bookingId);
+}
+
+export async function applyBookingRemainingBalancePayment(
+  bookingId: string,
+  amount: number,
+  paymentRef: string
+) {
+  const { data: currentBooking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('id, status, reservation_fee, payment_ref, remaining_balance, total')
+    .eq('id', bookingId)
+    .maybeSingle();
+
+  if (fetchError) return { error: fetchError.message };
+  if (!currentBooking) return { error: 'Booking not found.' };
+
+  if ((currentBooking as { status?: string }).status === 'cancelled') {
+    return { error: 'This booking has been cancelled and cannot receive a payment.' };
+  }
+
+  const reservationFee = Number((currentBooking as { reservation_fee?: number } | null)?.reservation_fee ?? 0);
+  const total = Number((currentBooking as { total?: number } | null)?.total ?? 0);
+  const remainingBalance = Number((currentBooking as { remaining_balance?: number } | null)?.remaining_balance ?? 0);
+  const expectedRemainingBalance = Math.max(0, total - reservationFee);
+
+  if (remainingBalance <= 0) {
+    return { error: 'This booking has no outstanding balance.' };
+  }
+
+  const normalizedAmount = Number(amount || 0);
+  if (normalizedAmount !== remainingBalance && normalizedAmount !== expectedRemainingBalance) {
+    return { error: 'Payment amount must match the outstanding balance.' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('bookings')
+    .update({ remaining_balance: 0 })
+    .eq('id', bookingId);
+
+  if (updateError) return { error: updateError.message };
+  return { error: null };
+}
+
 export async function requestBookingChanges(bookingId: string, notes: string) {
   return supabase
     .from('bookings')
@@ -269,7 +361,14 @@ export async function getBookings(userId: string, role: 'customer' | 'admin', st
 }
 
 export async function cancelBooking(bookingId: string) {
-  return supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+  const { data, error } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('id', bookingId)
+    .select('id, status')
+    .single();
+
+  return { data, error };
 }
 
 export async function updateBookingStatus(bookingId: string, status: string, plannerId?: string) {
